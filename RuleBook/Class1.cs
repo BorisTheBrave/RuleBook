@@ -3,6 +3,11 @@
     #region RuleResult
     public interface IRuleResult
     {
+        bool TryGetReturnValue<TValue>(out TValue value)
+        {
+            value = default;
+            return false;
+        }
 
     }
 
@@ -22,6 +27,19 @@
         }
 
         public T Value { get; private set; }
+
+        public bool TryGetReturnValue<TValue>(out TValue value)
+        {
+            if(typeof(T).IsAssignableTo(typeof(TValue)))
+            {
+                value = (TValue)(object)Value;
+                return true;
+
+            }
+            value = default;
+            return false;
+        }
+
     }
 
     // TOOD: Stop/AnyStop for Return<void>
@@ -59,22 +77,41 @@
 
     public class FuncBook<TArg, TRet>
     {
-        private class Rule
+        private class Rule : IComparable<Rule>
         {
-            public string Name;
-            public int Phase;
-            public int Order;
-            public Func<TArg, bool> Pre;
-            public Func<TArg, IRuleResult> Func;
+            public string Name { get; init; }
+            public int Order { get; init; }
+            public Func<TArg, bool> Pre { get; init; }
+            // At most one of the following should be defined
+            public Func<TArg, IRuleResult>? Body { get; init; }
+            public Func<Func<TArg, IRuleResult>, TArg, IRuleResult>? WrapBody { get; init; }
+            public FuncBook<TArg, TRet>? BookBody { get; init; }
+
+            public int CompareTo(FuncBook<TArg, TRet>.Rule? other)
+            {
+                if(this.Order < other.Order) return -1;
+                if(this.Order > other.Order) return 1;
+                if (this.Pre != null && other.Pre == null) return -1;
+                if (this.Pre == null && other.Pre != null) return 1;
+                return 0;
+            }
         }
 
         public class RuleBuilder
         {
+            public FuncBook<TArg, TRet> parent;
+
             private string name;
             private int phase;
             private int order;
             private Func<TArg, bool> pre;
             private Func<TArg, IRuleResult> body;
+            public Func<Func<TArg, IRuleResult>, TArg, IRuleResult> wrapBody;
+
+            internal RuleBuilder(FuncBook<TArg, TRet> parent)
+            {
+                this.parent = parent;
+            }
 
             public RuleBuilder When(Func<TArg, bool> pre)
             {
@@ -88,31 +125,70 @@
                 return this;
             }
 
-            public RuleBuilder Instead(Func<TArg, TRet> body)
+            public RuleBuilder At(int order)
+            {
+                this.order = order;
+                return this;
+            }
+
+            public void Instead(TRet value)
+            {
+                this.body = (arg1) => RuleResult.Return(value);
+                Finish();
+            }
+
+            public void Instead(Func<TArg, TRet> body)
             {
                 this.body = (arg1) => RuleResult.Return(body(arg1));
-                return this;
+                Finish();
             }
 
 
-            public RuleBuilder Do(Action<TArg> body)
+            public void Do(Action<TArg> body)
             {
                 this.body = (arg) => { body(arg); return RuleResult.Continue; };
-                return this;
+                Finish();
             }
 
-            public RuleBuilder WithBody(Func<TArg, IRuleResult> body)
+            public void WithBody(Func<TArg, IRuleResult> body)
             {
                 this.body = body;
-                return this;
+                Finish();
+            }
+
+            public void WrapBody(Func<Func<TArg, IRuleResult>, TArg, IRuleResult> wrapBody)
+            {
+                this.wrapBody = wrapBody;
+                Finish();
+            }
+
+            private void Finish()
+            {
+                var rule = new Rule
+                {
+                    Name = name,
+                    Order = order,
+                    Pre = pre,
+                    Body = body,
+                    WrapBody = wrapBody,
+                    BookBody = null,
+                };
+                parent.rules.Add(rule);
+                // List.Sort() not stable, sadly
+                parent.rules = parent.rules.OrderBy(x => x).ToList();
             }
         }
 
 
-        private List<Rule> rules;
+        private List<Rule> rules = new List<Rule>();
 
         public FuncBook() 
         {
+        }
+
+        public RuleBuilder AddRule()
+        {
+            return new RuleBuilder(this);
         }
 
         public TRet Invoke(TArg arg)
@@ -128,20 +204,43 @@
                 case ChangeArgsRuleResult<ValueTuple<TArg>> _:
                     throw new Exception("No rule produced a result");
                 default:
+                    // TODO: Give a better explanation. Perhaps you got the types wrong?
                     throw new Exception("Unexpected rule result");
 
             }
         }
 
-        public IRuleResult Evaluate(TArg arg)
+        public IRuleResult Evaluate(TArg arg) => Evaluate(arg, 0);
+
+        private IRuleResult Evaluate(TArg arg1, int startingAt)
         {
-            foreach (var rule in rules)
+            // TODO: Protect against mutation while this is running?
+            for (var i = startingAt; i < rules.Count; i++)
             {
-                if(rule.Pre != null && !rule.Pre(arg))
+                var rule = rules[i];
+                if (rule.Pre != null && !rule.Pre(arg1))
                 {
                     continue;
                 }
-                var ruleResult = rule.Func(arg);
+                IRuleResult ruleResult;
+                if (rule.Body != null)
+                {
+                    ruleResult = rule.Body(arg1);
+                }
+                else if (rule.WrapBody != null)
+                {
+                    // Tail call, as we're doing the rest of the evaluation
+                    // in the first method.
+                    return rule.WrapBody(arg1 => Evaluate(arg1, startingAt + 1), arg1);
+                }
+                else if (rule.BookBody != null)
+                {
+                    ruleResult = rule.BookBody.Evaluate(arg1);
+                }
+                else
+                {
+                    ruleResult = RuleResult.Continue;
+                }
                 switch (ruleResult)
                 {
                     case ReturnRuleResult<TRet> r:
@@ -150,11 +249,11 @@
                     case ContinueRuleResult _:
                         continue;
                     case ChangeArgsRuleResult<ValueTuple<TArg>> c:
-                        arg = c.NewArgs.Item1;
+                        arg1 = c.NewArgs.Item1;
                         continue;
                     default:
+                        // TODO: Give a better explanation. Perhaps you got the types wrong?
                         throw new Exception("Unexpected rule result");
-
                 }
             }
             return RuleResult.Continue;

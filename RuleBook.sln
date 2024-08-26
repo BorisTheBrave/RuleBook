@@ -5,6 +5,11 @@ VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuleBook", "RuleBook\RuleBook.csproj", "{2AB0F841-690A-47D2-BABB-14D655EFE419}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuleBook.Test", "RuleBook.Test\RuleBook.Test.csproj", "{24F001D4-3F03-4C56-940A-3B350D43EE17}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2AB0F841-690A-47D2-BABB-14D655EFE419} = {2AB0F841-690A-47D2-BABB-14D655EFE419}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +20,10 @@ Global
 		{2AB0F841-690A-47D2-BABB-14D655EFE419}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2AB0F841-690A-47D2-BABB-14D655EFE419}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2AB0F841-690A-47D2-BABB-14D655EFE419}.Release|Any CPU.Build.0 = Release|Any CPU
+		{24F001D4-3F03-4C56-940A-3B350D43EE17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24F001D4-3F03-4C56-940A-3B350D43EE17}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24F001D4-3F03-4C56-940A-3B350D43EE17}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24F001D4-3F03-4C56-940A-3B350D43EE17}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
