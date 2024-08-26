@@ -1,4 +1,6 @@
-﻿namespace RuleBook
+﻿using System.Data;
+
+namespace RuleBook
 {
     #region RuleResult
     public interface IRuleResult
@@ -75,34 +77,40 @@
 
     // TODO Variants for different args, void returns, coroutines, accumulating
 
+
+    /// <summary>
+    /// Represents a single rule that can be inserted into a FuncRuleBook.
+    /// </summary>
+    public class FuncRule<TArg, TRet> : IComparable<FuncRule<TArg, TRet>>
+    {
+        public string Name { get; init; }
+        public int Order { get; init; }
+        public Func<TArg, bool> Condition { get; init; }
+        // At most one of the following should be defined
+        public Func<TArg, IRuleResult>? Body { get; init; }
+        public Func<Func<TArg, IRuleResult>, TArg, IRuleResult>? WrapBody { get; init; }
+        public FuncBook<TArg, TRet>? BookBody { get; init; }
+
+        public int CompareTo(FuncRule<TArg, TRet>? other)
+        {
+            if (this.Order < other.Order) return -1;
+            if (this.Order > other.Order) return 1;
+            if (this.Condition != null && other.Condition == null) return -1;
+            if (this.Condition == null && other.Condition != null) return 1;
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// A collection of rules, that collectively define a callable function with signature Func<TArg, TRet>
+    /// </summary>
     public class FuncBook<TArg, TRet>
     {
-        private class Rule : IComparable<Rule>
-        {
-            public string Name { get; init; }
-            public int Order { get; init; }
-            public Func<TArg, bool> Pre { get; init; }
-            // At most one of the following should be defined
-            public Func<TArg, IRuleResult>? Body { get; init; }
-            public Func<Func<TArg, IRuleResult>, TArg, IRuleResult>? WrapBody { get; init; }
-            public FuncBook<TArg, TRet>? BookBody { get; init; }
-
-            public int CompareTo(FuncBook<TArg, TRet>.Rule? other)
-            {
-                if(this.Order < other.Order) return -1;
-                if(this.Order > other.Order) return 1;
-                if (this.Pre != null && other.Pre == null) return -1;
-                if (this.Pre == null && other.Pre != null) return 1;
-                return 0;
-            }
-        }
-
         public class RuleBuilder
         {
             public FuncBook<TArg, TRet> parent;
 
             private string name;
-            private int phase;
             private int order;
             private Func<TArg, bool> pre;
             private Func<TArg, IRuleResult> body;
@@ -164,11 +172,11 @@
 
             private void Finish()
             {
-                var rule = new Rule
+                var rule = new FuncRule<TArg, TRet>
                 {
                     Name = name,
                     Order = order,
-                    Pre = pre,
+                    Condition = pre,
                     Body = body,
                     WrapBody = wrapBody,
                     BookBody = null,
@@ -180,7 +188,7 @@
         }
 
 
-        private List<Rule> rules = new List<Rule>();
+        private List<FuncRule<TArg, TRet>> rules = new List<FuncRule<TArg, TRet>>();
 
         public FuncBook() 
         {
@@ -218,7 +226,7 @@
             for (var i = startingAt; i < rules.Count; i++)
             {
                 var rule = rules[i];
-                if (rule.Pre != null && !rule.Pre(arg1))
+                if (rule.Condition != null && !rule.Condition(arg1))
                 {
                     continue;
                 }
