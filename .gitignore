@@ -1,10 +1,4 @@
 /.vs/
 obj/
 bin/
-*.2.cs
-*.3.cs
-*.4.cs
-*.5.cs
-*.6.cs
-*.7.cs
-*.8.cs
+Gen/

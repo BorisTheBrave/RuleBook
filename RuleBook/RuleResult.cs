@@ -18,6 +18,13 @@ namespace RuleBook
         private ContinueRuleResult() { }
     }
 
+    public class StopRuleResult : IRuleResult
+    {
+        public static StopRuleResult Instance = new StopRuleResult();
+
+        private StopRuleResult() { }
+    }
+
 
     public class ReturnRuleResult<T> : IRuleResult
     {
@@ -40,11 +47,10 @@ namespace RuleBook
         }
     }
 
-    // TOOD: Stop for Return<void>
-
     public static class RuleResult
     {
         public static ContinueRuleResult Continue => ContinueRuleResult.Instance;
+        public static StopRuleResult Stop => StopRuleResult.Instance;
         public static ReturnRuleResult<T> Return<T>(T value) => new ReturnRuleResult<T>(value);
     }
 

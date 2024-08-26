@@ -40,6 +40,19 @@ namespace RuleBook
                 return this;
             }
 
+#if IS_ACTION
+            public ActionRule<TArg1> Stop()
+            {
+                this.body = (arg1) => { return RuleResult.Stop; };
+                return Finish();
+            }
+
+            public ActionRule<TArg1> Instead(Action<TArg1> body)
+            {
+                this.body = (arg1) => { body(arg1); return RuleResult.Stop; };
+                return Finish();
+            }
+#else
             public FuncRule<TArg1, TRet> Instead(TRet value)
             {
                 this.body = (arg1) => RuleResult.Return(value);
@@ -51,7 +64,7 @@ namespace RuleBook
                 this.body = (arg1) => RuleResult.Return(body(arg1));
                 return Finish();
             }
-
+#endif
 
             public FuncRule<TArg1, TRet> Do(Action<TArg1> body)
             {
@@ -130,6 +143,22 @@ namespace RuleBook
             rules = rules.OrderBy(x => x).ToList();
         }
 
+#if IS_ACTION
+        public void Invoke(TArg1 arg1)
+        {
+            var ruleResult = Evaluate(arg1);
+            if(ruleResult == RuleResult.Stop)
+            {
+                return;
+            }
+            if(ruleResult == RuleResult.Continue)
+            {
+                throw new Exception("No rule produced a result");
+            }
+            // TODO: Give a better explanation. Perhaps you got the types wrong?
+            throw new Exception("Unexpected rule result");
+        }
+#else
         public TRet Invoke(TArg1 arg1)
         {
             var ruleResult = Evaluate(arg1);
@@ -144,6 +173,7 @@ namespace RuleBook
             // TODO: Give a better explanation. Perhaps you got the types wrong?
             throw new Exception("Unexpected rule result");
         }
+#endif
 
         public IRuleResult Evaluate(TArg1 arg1) => Evaluate(arg1, 0);
 
@@ -178,8 +208,13 @@ namespace RuleBook
                 }
                 switch (ruleResult)
                 {
+#if IS_ACTION
+                    case StopRuleResult _:
+                        return RuleResult.Stop;
+#else
                     case ReturnRuleResult<TRet> r:
                         return r;
+#endif
                     case null:
                     case ContinueRuleResult _:
                         continue;
