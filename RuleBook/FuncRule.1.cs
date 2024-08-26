@@ -53,6 +53,7 @@
                 wrapBody = value;
             }
         }
+
         public FuncBook<TArg1, TRet>? BookBody
         {
             get { return bookBody; }
@@ -61,6 +62,7 @@
                 if (value != null && (funcBody != null || wrapBody != null)) RaiseBodyError();
                 bookBody = value;
             }
+
         }
 
         public int CompareTo(FuncRule<TArg1, TRet>? other)

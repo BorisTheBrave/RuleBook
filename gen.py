@@ -22,17 +22,28 @@ def transform_action(src, dst):
     open(dst, 'w').writelines(results)
     os.chmod(dst, S_IREAD|S_IRGRP|S_IROTH)   
 
-def transform(src, dst, n):
+def transform_n(src, dst, n):
     lines = open(src).readlines()
 
     results = []
-    results.append(f"// This file is generated, please edit source in {src}\n")
+    if "This file is generated" not in lines[0]:
+        results.append(f"// This file is generated, please edit source in {src}\n")
     r = range(1, n+1)
     for line in lines:
+        
+        if n == 0:
+            line = line.replace("TArg1 arg1, ", "")
+            line = line.replace("TArg1, ", "")
+            line = line.replace("arg1, ", "")
         line = line.replace("TArg1 arg1", "!TARGS!")
         line = line.replace("TArg1", ", ".join([f"TArg{i}" for i in r]))
         line = line.replace("arg1", ", ".join([f"arg{i}" for i in r]))
         line = line.replace("!TARGS!", ", ".join([f"TArg{i} arg{i}" for i in r]))
+        if n == 0:
+            line = line.replace("ActionBook<>", "ActionBook")
+            line = line.replace("ActionRule<>", "ActionRule")
+            line = line.replace("Action<>", "Action")
+            line = line.replace(", )", ")")
 
         results.append(line)
 
@@ -46,8 +57,10 @@ def transform(src, dst, n):
 if __name__ == '__main__':
     transform_action('RuleBook/FuncRule.1.cs', f'RuleBook/Gen/ActionRule.1.cs')
     transform_action('RuleBook/FuncBook.1.cs', f'RuleBook/Gen/ActionBook.1.cs')
-    for n in range(2, 8+1):
-        transform('RuleBook/FuncRule.1.cs', f'RuleBook/Gen/FuncRule.{n}.cs', n)
-        transform('RuleBook/FuncBook.1.cs', f'RuleBook/Gen/FuncBook.{n}.cs', n)
-        transform('RuleBook/Gen/ActionRule.1.cs', f'RuleBook/Gen/ActionRule.{n}.cs', n)
-        transform('RuleBook/Gen/ActionBook.1.cs', f'RuleBook/Gen/ActionBook.{n}.cs', n)
+    for n in range(0, 8+1):
+        if n == 1:
+            continue
+        transform_n('RuleBook/FuncRule.1.cs', f'RuleBook/Gen/FuncRule.{n}.cs', n)
+        transform_n('RuleBook/FuncBook.1.cs', f'RuleBook/Gen/FuncBook.{n}.cs', n)
+        transform_n('RuleBook/Gen/ActionRule.1.cs', f'RuleBook/Gen/ActionRule.{n}.cs', n)
+        transform_n('RuleBook/Gen/ActionBook.1.cs', f'RuleBook/Gen/ActionBook.{n}.cs', n)
