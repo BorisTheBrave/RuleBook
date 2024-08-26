@@ -1,30 +1,20 @@
 ﻿namespace RuleBook
 {
     #region RuleResult
-    public interface IRuleResult<T>
+    public interface IRuleResult
     {
 
     }
 
-    public class ContinueRuleResult<T> : IRuleResult<T>
+    public class ContinueRuleResult : IRuleResult
     {
-        public static ContinueRuleResult<T> Instance = new ContinueRuleResult<T>();
+        public static ContinueRuleResult Instance = new ContinueRuleResult();
 
         private ContinueRuleResult() { }
-
-        public static implicit operator ContinueRuleResult<T>(AnyContinueRuleResult _) => new ContinueRuleResult<T>();
-
-    }
-
-    public class AnyContinueRuleResult
-    {
-        public static AnyContinueRuleResult Instance = new AnyContinueRuleResult();
-
-        private AnyContinueRuleResult() { }
     }
 
 
-    public class ReturnRuleResult<T> : IRuleResult<T>
+    public class ReturnRuleResult<T> : IRuleResult
     {
         public ReturnRuleResult(T value)
         {
@@ -36,7 +26,7 @@
 
     // TOOD: Stop/AnyStop for Return<void>
 
-    public class ChangeArgsRuleResult<TArgs, T> : IRuleResult<T>
+    public class ChangeArgsRuleResult<TArgs> : IRuleResult
     {
         public ChangeArgsRuleResult(TArgs newArgs)
         {
@@ -48,11 +38,11 @@
 
     public static class RuleResult
     {
-        public static AnyContinueRuleResult Continue => AnyContinueRuleResult.Instance;
+        public static ContinueRuleResult Continue => ContinueRuleResult.Instance;
         public static ReturnRuleResult<T> Return<T>(T value) => new ReturnRuleResult<T>(value);
-        //public static ChangeArgsRuleResult<ValueTuple<T1>> ChangeArgs<T1>(T1 arg1) => new ChangeArgsRuleResult<ValueTuple<T1>>(new ValueTuple<T1>(arg1));
+        public static ChangeArgsRuleResult<ValueTuple<T1>> ChangeArgs<T1>(T1 arg1) => new ChangeArgsRuleResult<ValueTuple<T1>>(new ValueTuple<T1>(arg1));
     }
-    #region
+    #endregion
 
     public static class Phase
     {
@@ -65,7 +55,7 @@
         public const int Report = 2;
     }
 
-    // TODO Variants for different args, void returns, coroutines
+    // TODO Variants for different args, void returns, coroutines, accumulating
 
     public class FuncBook<TArg, TRet>
     {
@@ -75,8 +65,49 @@
             public int Phase;
             public int Order;
             public Func<TArg, bool> Pre;
-            public Func<TArg, IRuleResult<TRet>> Func;
+            public Func<TArg, IRuleResult> Func;
         }
+
+        public class RuleBuilder
+        {
+            private string name;
+            private int phase;
+            private int order;
+            private Func<TArg, bool> pre;
+            private Func<TArg, IRuleResult> body;
+
+            public RuleBuilder When(Func<TArg, bool> pre)
+            {
+                this.pre = pre;
+                return this;
+            }
+
+            public RuleBuilder Named(string name)
+            {
+                this.name = name;
+                return this;
+            }
+
+            public RuleBuilder Instead(Func<TArg, TRet> body)
+            {
+                this.body = (arg1) => RuleResult.Return(body(arg1));
+                return this;
+            }
+
+
+            public RuleBuilder Do(Action<TArg> body)
+            {
+                this.body = (arg) => { body(arg); return RuleResult.Continue; };
+                return this;
+            }
+
+            public RuleBuilder WithBody(Func<TArg, IRuleResult> body)
+            {
+                this.body = body;
+                return this;
+            }
+        }
+
 
         private List<Rule> rules;
 
@@ -86,14 +117,15 @@
 
         public TRet Invoke(TArg arg)
         {
-            var ruleResult = AbideBy(arg);
+            var ruleResult = Evaluate(arg);
             //TODO: Method for this?
             switch(ruleResult)
             {
                 case ReturnRuleResult<TRet> r:
                     return r.Value;
-                case ContinueRuleResult<TRet> _:
-                case ChangeArgsRuleResult<TRet> _:
+                case null:
+                case ContinueRuleResult _:
+                case ChangeArgsRuleResult<ValueTuple<TArg>> _:
                     throw new Exception("No rule produced a result");
                 default:
                     throw new Exception("Unexpected rule result");
@@ -101,9 +133,8 @@
             }
         }
 
-        public IRuleResult<TRet> AbideBy(TArg arg)
+        public IRuleResult Evaluate(TArg arg)
         {
-
             foreach (var rule in rules)
             {
                 if(rule.Pre != null && !rule.Pre(arg))
@@ -115,15 +146,18 @@
                 {
                     case ReturnRuleResult<TRet> r:
                         return r;
-                    case ContinueRuleResult<TRet> _:
+                    case null:
+                    case ContinueRuleResult _:
                         continue;
                     case ChangeArgsRuleResult<ValueTuple<TArg>> c:
                         arg = c.NewArgs.Item1;
+                        continue;
                     default:
                         throw new Exception("Unexpected rule result");
 
                 }
             }
+            return RuleResult.Continue;
         }
 
     }
