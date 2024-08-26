@@ -68,7 +68,7 @@ namespace RuleBook.Test
         {
             var book = new FuncBook<int, int>();
             var list = new List<string>();
-            book.AddRule().Do(_ => list.Add("default"));
+            book.AddRule().Do(_ => list.Add("default1"));
             // Later rules are run later
             book.AddRule().Do(_ => list.Add("default2"));
             // Rules with precondition are preferred over those without
@@ -84,9 +84,50 @@ namespace RuleBook.Test
             {
                 "order",
                 "when",
-                "default",
+                "default1",
                 "default2"
             }, list);
+        }
+
+        [Test]
+        public void Mutable_Ordering()
+        {
+            var book = new FuncBook<int, int>();
+            var list = new List<string>();
+            var default1 = book.AddRule().Do(_ => list.Add("default1"));
+            // Later rules are run later
+            var default2 = book.AddRule().Do(_ => list.Add("default2"));
+            // Rules with precondition are preferred over those without
+            var when = book.AddRule().Do(_ => list.Add("when"));
+            // Ordering takes effect
+            var order = book.AddRule().When(_ => true).Do(_ => list.Add("order"));
+
+            book.AddRule().Instead(0);
+
+            when.Condition = _ => true;
+            order.Order = -1;
+
+            book.Invoke(0);
+
+            CollectionAssert.AreEqual(new[]
+            {
+                "order",
+                "when",
+                "default1",
+                "default2"
+            }, list);
+        }
+
+        [Test]
+        public void Mutable_Parent()
+        {
+            var book1 = new FuncBook<int, int>();
+            var book2 = new FuncBook<int, int>();
+            var rule = book1.AddRule().Instead(0);
+            rule.Parent = book2;
+
+            Assert.That(book1.Evaluate(0), Is.EqualTo(RuleResult.Continue));
+            Assert.That(book2.Evaluate(0), Is.EqualTo(RuleResult.Return(0)));
         }
     }
 }

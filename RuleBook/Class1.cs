@@ -42,6 +42,16 @@ namespace RuleBook
             return false;
         }
 
+        public override bool Equals(object? obj)
+        {
+            return obj is ReturnRuleResult<T> result &&
+                   EqualityComparer<T>.Default.Equals(Value, result.Value);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Value);
+        }
     }
 
     // TOOD: Stop/AnyStop for Return<void>
@@ -79,17 +89,65 @@ namespace RuleBook
 
 
     /// <summary>
-    /// Represents a single rule that can be inserted into a FuncRuleBook.
+    /// Represents a single rule that can be inserted into a FuncBook.
+    /// Rules can only belong to a single rulebook.
     /// </summary>
     public class FuncRule<TArg, TRet> : IComparable<FuncRule<TArg, TRet>>
     {
-        public string Name { get; init; }
-        public int Order { get; init; }
-        public Func<TArg, bool> Condition { get; init; }
+        private FuncBook<TArg, TRet> parent;
+        private string name;
+        private int order;
+        private Func<TArg, bool> condition;
         // At most one of the following should be defined
-        public Func<TArg, IRuleResult>? Body { get; init; }
-        public Func<Func<TArg, IRuleResult>, TArg, IRuleResult>? WrapBody { get; init; }
-        public FuncBook<TArg, TRet>? BookBody { get; init; }
+        private Func<TArg, IRuleResult>? funcBody;
+        private Func<Func<TArg, IRuleResult>, TArg, IRuleResult>? wrapBody;
+        private FuncBook<TArg, TRet>? bookBody;
+
+
+        public FuncBook<TArg, TRet> Parent
+        {
+            get
+            {
+                return parent;
+            }
+            set
+            {
+                parent?.RemoveRule(this);
+                parent = value;
+                parent?.AddRule(this);
+            }
+        }
+        public string Name { get { return name; } set { name = value; } }
+        public int Order { get { return order; } set { order = value; Reorder(); } }
+        public Func<TArg, bool> Condition { get { return condition; } set { condition = value; Reorder(); } }
+        // At most one of the following should be defined
+        public Func<TArg, IRuleResult>? FuncBody
+        {
+            get { return funcBody; }
+            set
+            {
+                if (value != null && (wrapBody != null || bookBody != null)) RaiseBodyError();
+                funcBody = value;
+            }
+        }
+        public Func<Func<TArg, IRuleResult>, TArg, IRuleResult>? WrapBody
+        {
+            get { return wrapBody; }
+            set
+            {
+                if (value != null && (funcBody != null || bookBody != null)) RaiseBodyError();
+                wrapBody = value;
+            }
+        }
+        public FuncBook<TArg, TRet>? BookBody
+        {
+            get { return bookBody; }
+            set
+            {
+                if (value != null && (funcBody != null || wrapBody != null)) RaiseBodyError();
+                bookBody = value;
+            }
+        }
 
         public int CompareTo(FuncRule<TArg, TRet>? other)
         {
@@ -98,6 +156,16 @@ namespace RuleBook
             if (this.Condition != null && other.Condition == null) return -1;
             if (this.Condition == null && other.Condition != null) return 1;
             return 0;
+        }
+
+        private void Reorder()
+        {
+            parent?.ReorderRule(this);
+        }
+
+        private void RaiseBodyError()
+        {
+            throw new Exception($"A rule can only have one of FuncBody, WrapBody or BookBody set. Unset the others first");
         }
     }
 
@@ -108,7 +176,7 @@ namespace RuleBook
     {
         public class RuleBuilder
         {
-            public FuncBook<TArg, TRet> parent;
+            private FuncBook<TArg, TRet> parent;
 
             private string name;
             private int order;
@@ -139,51 +207,50 @@ namespace RuleBook
                 return this;
             }
 
-            public void Instead(TRet value)
+            public FuncRule<TArg, TRet> Instead(TRet value)
             {
                 this.body = (arg1) => RuleResult.Return(value);
-                Finish();
+                return Finish();
             }
 
-            public void Instead(Func<TArg, TRet> body)
+            public FuncRule<TArg, TRet> Instead(Func<TArg, TRet> body)
             {
                 this.body = (arg1) => RuleResult.Return(body(arg1));
-                Finish();
+                return Finish();
             }
 
 
-            public void Do(Action<TArg> body)
+            public FuncRule<TArg, TRet> Do(Action<TArg> body)
             {
                 this.body = (arg) => { body(arg); return RuleResult.Continue; };
-                Finish();
+                return Finish();
             }
 
-            public void WithBody(Func<TArg, IRuleResult> body)
+            public FuncRule<TArg, TRet> WithBody(Func<TArg, IRuleResult> body)
             {
                 this.body = body;
-                Finish();
+                return Finish();
             }
 
-            public void WrapBody(Func<Func<TArg, IRuleResult>, TArg, IRuleResult> wrapBody)
+            public FuncRule<TArg, TRet> WrapBody(Func<Func<TArg, IRuleResult>, TArg, IRuleResult> wrapBody)
             {
                 this.wrapBody = wrapBody;
-                Finish();
+                return Finish();
             }
 
-            private void Finish()
+            private FuncRule<TArg, TRet> Finish()
             {
                 var rule = new FuncRule<TArg, TRet>
                 {
                     Name = name,
                     Order = order,
                     Condition = pre,
-                    Body = body,
+                    FuncBody = body,
                     WrapBody = wrapBody,
                     BookBody = null,
                 };
-                parent.rules.Add(rule);
-                // List.Sort() not stable, sadly
-                parent.rules = parent.rules.OrderBy(x => x).ToList();
+                parent.AddRule(rule);
+                return rule;
             }
         }
 
@@ -197,6 +264,37 @@ namespace RuleBook
         public RuleBuilder AddRule()
         {
             return new RuleBuilder(this);
+        }
+
+        public void AddRule(FuncRule<TArg, TRet> rule)
+        {
+            if (rule.Parent == this)
+            {
+                rules.Add(rule);
+                ReorderRule(rule);
+            }
+            else
+            {
+                rule.Parent = this;
+            }
+        }
+
+        public void RemoveRule(FuncRule<TArg, TRet> rule)
+        {
+            if (rule.Parent == this)
+            {
+                rules.Remove(rule);
+            }
+            else
+            {
+                rule.Parent = null;
+            }
+        }
+
+        internal void ReorderRule(FuncRule<TArg, TRet> rule)
+        {
+            // List.Sort() not stable, sadly
+            rules = rules.OrderBy(x => x).ToList();
         }
 
         public TRet Invoke(TArg arg)
@@ -231,9 +329,9 @@ namespace RuleBook
                     continue;
                 }
                 IRuleResult ruleResult;
-                if (rule.Body != null)
+                if (rule.FuncBody != null)
                 {
-                    ruleResult = rule.Body(arg1);
+                    ruleResult = rule.FuncBody(arg1);
                 }
                 else if (rule.WrapBody != null)
                 {
