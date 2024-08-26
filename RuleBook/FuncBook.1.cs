@@ -3,26 +3,26 @@
 namespace RuleBook
 {
     /// <summary>
-    /// A collection of rules, that collectively define a callable function with signature Func<TArg, TRet>
+    /// A collection of rules, that collectively define a callable function with signature Func<TArg1, TRet>
     /// </summary>
-    public class FuncBook<TArg, TRet>
+    public class FuncBook<TArg1, TRet>
     {
         public class RuleBuilder
         {
-            private FuncBook<TArg, TRet> parent;
+            private FuncBook<TArg1, TRet> parent;
 
             private string name;
             private int order;
-            private Func<TArg, bool> pre;
-            private Func<TArg, IRuleResult> body;
-            public Func<Func<TArg, IRuleResult>, TArg, IRuleResult> wrapBody;
+            private Func<TArg1, bool> pre;
+            private Func<TArg1, IRuleResult> body;
+            public Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody;
 
-            internal RuleBuilder(FuncBook<TArg, TRet> parent)
+            internal RuleBuilder(FuncBook<TArg1, TRet> parent)
             {
                 this.parent = parent;
             }
 
-            public RuleBuilder When(Func<TArg, bool> pre)
+            public RuleBuilder When(Func<TArg1, bool> pre)
             {
                 this.pre = pre;
                 return this;
@@ -40,40 +40,40 @@ namespace RuleBook
                 return this;
             }
 
-            public FuncRule<TArg, TRet> Instead(TRet value)
+            public FuncRule<TArg1, TRet> Instead(TRet value)
             {
                 this.body = (arg1) => RuleResult.Return(value);
                 return Finish();
             }
 
-            public FuncRule<TArg, TRet> Instead(Func<TArg, TRet> body)
+            public FuncRule<TArg1, TRet> Instead(Func<TArg1, TRet> body)
             {
                 this.body = (arg1) => RuleResult.Return(body(arg1));
                 return Finish();
             }
 
 
-            public FuncRule<TArg, TRet> Do(Action<TArg> body)
+            public FuncRule<TArg1, TRet> Do(Action<TArg1> body)
             {
-                this.body = (arg) => { body(arg); return RuleResult.Continue; };
+                this.body = (arg1) => { body(arg1); return RuleResult.Continue; };
                 return Finish();
             }
 
-            public FuncRule<TArg, TRet> WithBody(Func<TArg, IRuleResult> body)
+            public FuncRule<TArg1, TRet> WithBody(Func<TArg1, IRuleResult> body)
             {
                 this.body = body;
                 return Finish();
             }
 
-            public FuncRule<TArg, TRet> WrapBody(Func<Func<TArg, IRuleResult>, TArg, IRuleResult> wrapBody)
+            public FuncRule<TArg1, TRet> WrapBody(Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody)
             {
                 this.wrapBody = wrapBody;
                 return Finish();
             }
 
-            private FuncRule<TArg, TRet> Finish()
+            private FuncRule<TArg1, TRet> Finish()
             {
-                var rule = new FuncRule<TArg, TRet>
+                var rule = new FuncRule<TArg1, TRet>
                 {
                     Name = name,
                     Order = order,
@@ -88,7 +88,7 @@ namespace RuleBook
         }
 
 
-        private List<FuncRule<TArg, TRet>> rules = new List<FuncRule<TArg, TRet>>();
+        private List<FuncRule<TArg1, TRet>> rules = new List<FuncRule<TArg1, TRet>>();
 
         public FuncBook() 
         {
@@ -99,7 +99,7 @@ namespace RuleBook
             return new RuleBuilder(this);
         }
 
-        public void AddRule(FuncRule<TArg, TRet> rule)
+        public void AddRule(FuncRule<TArg1, TRet> rule)
         {
             if (rule.Parent == this)
             {
@@ -112,7 +112,7 @@ namespace RuleBook
             }
         }
 
-        public void RemoveRule(FuncRule<TArg, TRet> rule)
+        public void RemoveRule(FuncRule<TArg1, TRet> rule)
         {
             if (rule.Parent == this)
             {
@@ -124,15 +124,15 @@ namespace RuleBook
             }
         }
 
-        internal void ReorderRule(FuncRule<TArg, TRet> rule)
+        internal void ReorderRule(FuncRule<TArg1, TRet> rule)
         {
             // List.Sort() not stable, sadly
             rules = rules.OrderBy(x => x).ToList();
         }
 
-        public TRet Invoke(TArg arg)
+        public TRet Invoke(TArg1 arg1)
         {
-            var ruleResult = Evaluate(arg);
+            var ruleResult = Evaluate(arg1);
             if(ruleResult.TryGetReturnValue<TRet>(out var value))
             {
                 return value;
@@ -145,9 +145,9 @@ namespace RuleBook
             throw new Exception("Unexpected rule result");
         }
 
-        public IRuleResult Evaluate(TArg arg) => Evaluate(arg, 0);
+        public IRuleResult Evaluate(TArg1 arg1) => Evaluate(arg1, 0);
 
-        private IRuleResult Evaluate(TArg arg1, int startingAt)
+        private IRuleResult Evaluate(TArg1 arg1, int startingAt)
         {
             // TODO: Protect against mutation while this is running?
             for (var i = startingAt; i < rules.Count; i++)
@@ -166,7 +166,7 @@ namespace RuleBook
                 {
                     // Tail call, as we're doing the rest of the evaluation
                     // in the first method.
-                    return rule.WrapBody(arg1 => Evaluate(arg1, startingAt + 1), arg1);
+                    return rule.WrapBody((arg1) => Evaluate(arg1, startingAt + 1), arg1);
                 }
                 else if (rule.BookBody != null)
                 {
@@ -182,9 +182,6 @@ namespace RuleBook
                         return r;
                     case null:
                     case ContinueRuleResult _:
-                        continue;
-                    case ChangeArgsRuleResult<ValueTuple<TArg>> c:
-                        arg1 = c.NewArgs.Item1;
                         continue;
                     default:
                         // TODO: Give a better explanation. Perhaps you got the types wrong?

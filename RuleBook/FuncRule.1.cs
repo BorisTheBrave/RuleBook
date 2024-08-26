@@ -6,19 +6,19 @@
     /// Represents a single rule that can be inserted into a FuncBook.
     /// Rules can only belong to a single rulebook.
     /// </summary>
-    public class FuncRule<TArg, TRet> : IComparable<FuncRule<TArg, TRet>>
+    public class FuncRule<TArg1, TRet> : IComparable<FuncRule<TArg1, TRet>>
     {
-        private FuncBook<TArg, TRet>? parent;
-        private string name;
+        private FuncBook<TArg1, TRet>? parent;
+        private string? name;
         private int order;
-        private Func<TArg, bool>? condition;
+        private Func<TArg1, bool>? condition;
         // At most one of the following should be defined
-        private Func<TArg, IRuleResult>? funcBody;
-        private Func<Func<TArg, IRuleResult>, TArg, IRuleResult>? wrapBody;
-        private FuncBook<TArg, TRet>? bookBody;
+        private Func<TArg1, IRuleResult>? funcBody;
+        private Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult>? wrapBody;
+        private FuncBook<TArg1, TRet>? bookBody;
 
 
-        public FuncBook<TArg, TRet> Parent
+        public FuncBook<TArg1, TRet>? Parent
         {
             get
             {
@@ -31,11 +31,11 @@
                 parent?.AddRule(this);
             }
         }
-        public string Name { get { return name; } set { name = value; } }
+        public string? Name { get { return name; } set { name = value; } }
         public int Order { get { return order; } set { order = value; Reorder(); } }
-        public Func<TArg, bool>? Condition { get { return condition; } set { condition = value; Reorder(); } }
+        public Func<TArg1, bool>? Condition { get { return condition; } set { condition = value; Reorder(); } }
         // At most one of the following should be defined
-        public Func<TArg, IRuleResult>? FuncBody
+        public Func<TArg1, IRuleResult>? FuncBody
         {
             get { return funcBody; }
             set
@@ -44,7 +44,7 @@
                 funcBody = value;
             }
         }
-        public Func<Func<TArg, IRuleResult>, TArg, IRuleResult>? WrapBody
+        public Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult>? WrapBody
         {
             get { return wrapBody; }
             set
@@ -53,7 +53,7 @@
                 wrapBody = value;
             }
         }
-        public FuncBook<TArg, TRet>? BookBody
+        public FuncBook<TArg1, TRet>? BookBody
         {
             get { return bookBody; }
             set
@@ -63,7 +63,7 @@
             }
         }
 
-        public int CompareTo(FuncRule<TArg, TRet>? other)
+        public int CompareTo(FuncRule<TArg1, TRet>? other)
         {
             if (this.Order < other.Order) return -1;
             if (this.Order > other.Order) return 1;

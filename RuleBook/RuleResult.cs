@@ -42,21 +42,10 @@ namespace RuleBook
 
     // TOOD: Stop for Return<void>
 
-    public class ChangeArgsRuleResult<TArgs> : IRuleResult
-    {
-        public ChangeArgsRuleResult(TArgs newArgs)
-        {
-            NewArgs = newArgs;
-        }
-
-        public TArgs NewArgs { get; private set; }
-    }
-
     public static class RuleResult
     {
         public static ContinueRuleResult Continue => ContinueRuleResult.Instance;
         public static ReturnRuleResult<T> Return<T>(T value) => new ReturnRuleResult<T>(value);
-        public static ChangeArgsRuleResult<ValueTuple<T1>> ChangeArgs<T1>(T1 arg1) => new ChangeArgsRuleResult<ValueTuple<T1>>(new ValueTuple<T1>(arg1));
     }
 
     public static class RuleResultExtensions
