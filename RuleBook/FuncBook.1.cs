@@ -133,20 +133,16 @@ namespace RuleBook
         public TRet Invoke(TArg arg)
         {
             var ruleResult = Evaluate(arg);
-            //TODO: Method for this?
-            switch(ruleResult)
+            if(ruleResult.TryGetReturnValue<TRet>(out var value))
             {
-                case ReturnRuleResult<TRet> r:
-                    return r.Value;
-                case null:
-                case ContinueRuleResult _:
-                case ChangeArgsRuleResult<ValueTuple<TArg>> _:
-                    throw new Exception("No rule produced a result");
-                default:
-                    // TODO: Give a better explanation. Perhaps you got the types wrong?
-                    throw new Exception("Unexpected rule result");
-
+                return value;
             }
+            if(ruleResult == RuleResult.Continue)
+            {
+                throw new Exception("No rule produced a result");
+            }
+            // TODO: Give a better explanation. Perhaps you got the types wrong?
+            throw new Exception("Unexpected rule result");
         }
 
         public IRuleResult Evaluate(TArg arg) => Evaluate(arg, 0);
