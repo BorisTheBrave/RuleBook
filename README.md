@@ -63,8 +63,8 @@ That let's us organize the code better. You can place code for handling eating a
 And we can later start modifying those rules themselves as rulebooks, if we want to override reglar behaviour.
 
 ```csharp
-// Ignore the Poisoned rul when the player is immune.
-EatFood["Poisoned"].AddRule().When(t=>Player.HasPoisonImmunity).Instead(() => {});
+// Ignore the Poisoned rule when the player is immune.
+EatFood["Poisoned"].Rulebook.AddRule().When(t=>Player.HasPoisonImmunity).Instead(() => {});
 ```
 
 This let's you organize your code in a very modular way.
@@ -106,11 +106,13 @@ All rules must include a body, which is added by the foollowing fluent API metho
 
 `.Do(body)` - This rule runs the body, then continues to the next rule in the rulebook. Body take the same args as the rulebook, but not return anything.
 `.Instead(body)` - This rule runs the body, then exits the rulebook. Body should be a lambda with the same signature as the rulebook.
-`.Return(value)` - Shorthand for `.Instead((arg1, arg2) => value)` etc
-`.Stop()` - Shorthand for `.Instead((arg1, arg2) => {})` etc
-`.WithBody()` - This rule runs the body, and either continues to the next rule, or exits the rulebook. Returns an `IRuleResult` described in [Rulebook Semantics](#rulebook-semantics).
-`.Wrap()` - See [wrap rules](#wrap-rules)
-`.WithWrapBody()` - As [wrap rules](#wrap-rules), but like `WithBody`, uses `IRuleResult` for the return value.
+`.Return(value)` - This rule exits the rulebook with agiven value. For `FuncBook<>` only.
+`.Stop()` - This rule exits the rulebook. For `ActionBook<>` only.
+`.WithBody(body)` - This rule runs the body, and either continues to the next rule, or exits the rulebook. Returns an `IRuleResult` described in [Rulebook Semantics](#rulebook-semantics).
+`.Wrap(body)` - See [wrap rules](#wrap-rules)
+`.WithWrapBody(body)` - As [wrap rules](#wrap-rules), but like `WithBody`, uses `IRuleResult` for the return value.
+`.AbideBy(rulebook)` - Creates a rule that invokes another rulebook, then stopping or returning if that rulebook did so. See [rulebook rules](#rulebook-rules)
+`.Follow(rulebook)` - Creates a rule that invokes another rulebook, ignoring any result of the rulebook (bar throwing an Exception). See [rulebook rules](#rulebook-rules)
 
 
 you can also use a more classic API, creating a `FuncRule<>` or `AcitonRule<>` object:
@@ -138,6 +140,9 @@ Then, the rule body is called, which returns an `IRuleResult` value. This is an 
 * If the returned result is `Stop` or `Return` then the rulebook stops evaluation, skipping all later rules. `Stop` is used for `ActionBook` and `Return` for `FuncBook`.
 
 
+The `Invoke` method works identical to `Evaluate`, then tries to interpret the `IRuleResult`. For `FuncBook<>`s that finish with a `Return(value)` result, they will throw an exception.
+
+
 ## Special Rules
 
 Normal rules are just store their body as a `Func<>` or `Action<>`, but there are special rules that behave differently.
@@ -159,6 +164,10 @@ FormatRule.AddRule().At(-1).When(o => o == currentKing).Wrap((contuation, o) => 
 // Add a rule that sets a specific name. This rule is run before the wrapper, so won't have "Lord " prepended.
 FormatRule.AddRule().At(-2).When(o => o == player).Return("you")
 ```
+
+### Rulebook Rules
+
+A rule can itself contain a sub rulebook of rules to execute.
 
 
 ## Rule ordering

@@ -61,15 +61,6 @@ EatFood["Poisoned"].When(t=>Player.HasPoisonImmunity).Instead(() => {});
 # TODO
 
 
-
-# TODO - phases
-
-Inform has multiple rulebooks for one action. Do we want to roll that in somehow?
-It would be great to treat these as sort orders, but that's not so.
-
-If an instead rule succeeds, it skips all other instead rules, and then stops the action.
-If a carry out rule succeeds, it skips all other carry out rules and moves onto the next phase (check).
-
 ## Documenting Informs behaviour
 
 Different rulebooks have different defaults:
@@ -134,27 +125,3 @@ Use ClalerArgumentExpression for unnamed rules
 
 # TODO Activity
  - a triple of rulebooks, plus a dynamic variable for "while <activity>" predicate.
-
-# TODO - Follow/Abide
-
-Make these easier. Two uses - inserting a rule that directly does this, and from C# code.
-
-
-# Translation of Terms from Inform 7
-
-Rulebook basis - args
-Rulebook variables - no equivalent? Use default args?
-
-Success / Failure - You can throw, or you can make a FuncBook that returns true/false
-Named outcomes - Return values, using an enum
-Make no descision - same as Continue
-Rulebooks producing value - Return values (FuncBook)
-AbideBy - .DoWithResult(() => { return otherRule.AbideBy()})
-AbideBy (multiple rules) - TODO - a bit awkward atm
-AbideByAnonymously
-
-[the noun] [the second noun] etc - Use args. Note, it's probably better to create an Action object with several details and have a single arged rulebook.
-I think technically Inform 7 uses dynamically scoped variables, but C# doesn't have them. You can approximate with globals if you like
-
-Before/After/Instead/Carry Out etc - no equivalent? Create multiple rulebooks
-

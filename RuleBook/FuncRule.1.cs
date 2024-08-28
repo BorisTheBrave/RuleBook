@@ -16,6 +16,7 @@
         private Func<TArg1, IRuleResult>? funcBody;
         private Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult>? wrapBody;
         private FuncBook<TArg1, TRet>? bookBody;
+        private bool bookBodyFollow;
 
 
         public FuncBook<TArg1, TRet>? Parent
@@ -64,6 +65,8 @@
             }
 
         }
+
+        public bool BookBodyFollow { get { return bookBodyFollow; } set { bookBodyFollow = value; } }
 
         public int CompareTo(FuncRule<TArg1, TRet>? other)
         {

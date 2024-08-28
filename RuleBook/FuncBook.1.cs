@@ -15,7 +15,9 @@ namespace RuleBook
             private int order;
             private Func<TArg1, bool> pre;
             private Func<TArg1, IRuleResult> body;
-            public Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody;
+            private Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody;
+            private FuncBook<TArg1, TRet>? bookBody;
+            private bool bookBodyFollow = false;
 
             internal RuleBuilder(FuncBook<TArg1, TRet> parent)
             {
@@ -113,6 +115,21 @@ namespace RuleBook
                 return Finish();
             }
 
+            public FuncRule<TArg1, TRet> AbideBy(FuncBook<TArg1, TRet> subFuncBook)
+            {
+                this.bookBody = subFuncBook;
+                this.bookBodyFollow = false;
+                return Finish();
+            }
+
+            public FuncRule<TArg1, TRet> Follow(FuncBook<TArg1, TRet> subFuncBook)
+            {
+                this.bookBody = subFuncBook;
+                this.bookBodyFollow = true;
+                return Finish();
+            }
+
+
             private FuncRule<TArg1, TRet> Finish()
             {
                 var rule = new FuncRule<TArg1, TRet>
@@ -122,7 +139,8 @@ namespace RuleBook
                     Condition = pre,
                     FuncBody = body,
                     WrapBody = wrapBody,
-                    BookBody = null,
+                    BookBody = bookBody,
+                    BookBodyFollow = bookBodyFollow,
                 };
                 parent.AddRule(rule);
                 return rule;
@@ -225,7 +243,14 @@ namespace RuleBook
                 }
                 else if (rule.BookBody != null)
                 {
-                    ruleResult = rule.BookBody.Evaluate(arg1);
+                    if(rule.BookBodyFollow)
+                    {
+                        rule.BookBody.Evaluate(arg1);
+                    }
+                    else
+                    {
+                        ruleResult = rule.BookBody.Evaluate(arg1);
+                    }
                 }
                 else
                 {
