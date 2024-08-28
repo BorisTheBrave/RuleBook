@@ -1,3 +1,4 @@
+using NUnit.Framework;
 using RuleBook;
 
 namespace RuleBook.Test
@@ -19,9 +20,24 @@ namespace RuleBook.Test
         public void Instead_Returns_Value()
         {
             var book = new FuncBook<int, int>();
+            bool wasRun = false;
             book.AddRule().Instead(x => x + 1);
+            book.AddRule().Do(_ => wasRun = true);
 
             Assert.That(book.Invoke(5), Is.EqualTo(6));
+            Assert.That(wasRun, Is.False);
+        }
+
+        [Test]
+        public void Return_Returns_Value()
+        {
+            var book = new FuncBook<int, int>();
+            bool wasRun = false;
+            book.AddRule().Return(6);
+            book.AddRule().Do(_ => wasRun = true);
+
+            Assert.That(book.Invoke(5), Is.EqualTo(6));
+            Assert.That(wasRun, Is.False);
         }
 
         [Test]
