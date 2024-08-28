@@ -53,7 +53,7 @@ namespace RuleBook
                 return Finish();
             }
 #else
-            public FuncRule<TArg1, TRet> Instead(TRet value)
+            public FuncRule<TArg1, TRet> Return(TRet value)
             {
                 this.body = (arg1) => RuleResult.Return(value);
                 return Finish();
@@ -78,7 +78,36 @@ namespace RuleBook
                 return Finish();
             }
 
-            public FuncRule<TArg1, TRet> WrapBody(Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody)
+#if IS_ACTION
+            public ActionRule<TArg1> Wrap(Action<Action<TArg1>, TArg1> wrapBody)
+            {
+                this.wrapBody = (continuation, arg1) =>
+                {
+                    void Continue(TArg1 arg1)
+                    {
+                        continuation(arg1);
+                    }
+                    wrapBody(Continue, arg1);
+                    return RuleResult.Stop;
+                };
+                return Finish();
+            }
+#else
+            public FuncRule<TArg1, TRet> Wrap(Func<Func<TArg1, TRet>, TArg1, TRet> wrapBody)
+            {
+                this.wrapBody = (continuation, arg1) =>
+                {
+                    TRet Continue(TArg1 arg1)
+                    {
+                        return continuation(arg1).GetReturnValueOrThrow<TRet>();
+                    }
+                    return RuleResult.Return(wrapBody(Continue, arg1));
+                };
+                return Finish();
+            }
+#endif
+
+            public FuncRule<TArg1, TRet> WithWrapBody(Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody)
             {
                 this.wrapBody = wrapBody;
                 return Finish();
@@ -147,13 +176,14 @@ namespace RuleBook
         public void Invoke(TArg1 arg1)
         {
             var ruleResult = Evaluate(arg1);
+            if(ruleResult == RuleResult.Continue)
+            {
+                // Unlike a FuncBook, it's fine for a ActionBook to do literally nothing.
+                return;
+            }
             if(ruleResult == RuleResult.Stop)
             {
                 return;
-            }
-            if(ruleResult == RuleResult.Continue)
-            {
-                throw new Exception("No rule produced a result");
             }
             // TODO: Give a better explanation. Perhaps you got the types wrong?
             throw new Exception("Unexpected rule result");
@@ -162,16 +192,11 @@ namespace RuleBook
         public TRet Invoke(TArg1 arg1)
         {
             var ruleResult = Evaluate(arg1);
-            if(ruleResult.TryGetReturnValue<TRet>(out var value))
-            {
-                return value;
-            }
-            if(ruleResult == RuleResult.Continue)
+            if (ruleResult == RuleResult.Continue)
             {
                 throw new Exception("No rule produced a result");
             }
-            // TODO: Give a better explanation. Perhaps you got the types wrong?
-            throw new Exception("Unexpected rule result");
+            return ruleResult.GetReturnValueOrThrow<TRet>();
         }
 #endif
 

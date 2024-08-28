@@ -30,7 +30,7 @@ namespace RuleBook.Test
             var book = new FuncBook<int, int>();
             bool wasRun = false;
             book.AddRule().Do(x => { wasRun = true; });
-            book.AddRule().Instead(6);
+            book.AddRule().Return(6);
 
             Assert.That(book.Invoke(5), Is.EqualTo(6));
             Assert.IsTrue(wasRun);
@@ -51,7 +51,7 @@ namespace RuleBook.Test
         public void WrapBody()
         {
             var book = new FuncBook<int, int>();
-            book.AddRule().WrapBody((inner, x) => {
+            book.AddRule().WithWrapBody((inner, x) => {
                 var result = inner(x * 3);
                 if (result.TryGetReturnValue<int>(out var y))
                     return RuleResult.Return(y / 3);
@@ -76,7 +76,7 @@ namespace RuleBook.Test
             // Ordering takes effect
             book.AddRule().At(-1).When(_ => true).Do(_ => list.Add("order"));
 
-            book.AddRule().Instead(0);
+            book.AddRule().Return(0);
 
             book.Invoke(0);
 
@@ -102,7 +102,7 @@ namespace RuleBook.Test
             // Ordering takes effect
             var order = book.AddRule().When(_ => true).Do(_ => list.Add("order"));
 
-            book.AddRule().Instead(0);
+            book.AddRule().Return(0);
 
             when.Condition = _ => true;
             order.Order = -1;
@@ -123,7 +123,7 @@ namespace RuleBook.Test
         {
             var book1 = new FuncBook<int, int>();
             var book2 = new FuncBook<int, int>();
-            var rule = book1.AddRule().Instead(0);
+            var rule = book1.AddRule().Return(0);
             rule.Parent = book2;
 
             Assert.That(book1.Evaluate(0), Is.EqualTo(RuleResult.Continue));

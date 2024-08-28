@@ -44,6 +44,7 @@ def transform_n(src, dst, n):
             line = line.replace("ActionRule<>", "ActionRule")
             line = line.replace("Action<>", "Action")
             line = line.replace(", )", ")")
+            line = line.replace(", >", ">")
 
         results.append(line)
 

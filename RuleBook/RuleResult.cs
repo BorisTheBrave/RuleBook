@@ -66,5 +66,15 @@ namespace RuleBook
             value = default;
             return false;
         }
+
+        public static TValue GetReturnValueOrThrow<TValue>(this IRuleResult ruleResult)
+        {
+            if (ruleResult.TryGetReturnValue<TValue>(out var value))
+            {
+                return value;
+            }
+            // TODO: Give a better explanation. Perhaps you got the types wrong?
+            throw new Exception("Unexpected rule result");
+        }
     }
 }

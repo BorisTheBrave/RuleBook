@@ -1,20 +1,26 @@
-C# library implementing something like Inform 7 rulebooks
+# RuleBook
 
-What are rulebooks?
+A C# library for modular functions, and actions, heavily inspired by [Inform 7](https://ganelson.github.io/inform-website/)'s [Rulebooks](https://ganelson.github.io/inform-website/book/WI_19_1.html).
+
+**What are rulebooks?**
 
 Rulebooks are essentially a fancy form of C#'s Func<> and Action<> generics.
 
-While Func<> and Action<> are opaque objects that cannot be edited once generated, 
-rulebooks are built out of individual rules, and are inspectable mutable.
+Func<> and Action<> can hold a reference to a C# method, or an lambda expression/statement. But the thing they hold is essentially a black box - you cannot do much with it except run it, or check equality.
 
-Rulebooks unified access to a bunch of useful programming patterns, including events, multiple dispatch, modding and code weaving.
+RuleBook provies FuncBook<> and ActionBook<>, which work similarly to their counterparts. But these rulebook objects are built out of individual rules, which can be individually inspected and mutated.
+
+Overall, rulebooks give a systematic way of handling a bunch of useful programming patterns, including events, multiple dispatch, modding and code weaving.
+
+
+
 
 # Example
 
-It's common to write out game logic
+All that's a bit abstract, so let's look at a concrete example. Suppose you are coding some logic for a game. You might have a function like:
 
 ```csharp
-void EatFood(Object t)
+void EatFood(Item t)
 {
     if(!t.Edible)
     {
@@ -26,7 +32,7 @@ void EatFood(Object t)
         SetStatus("poisoned");
     }
 
-    Say($"You eat the {t}");
+    Say($"You eat the {t}.");
     IncreaseHealth(t.HealthRecovery);
 }
 
@@ -36,111 +42,123 @@ EatFood(thePizza);
 With rulebooks, you can instead do
 
 ```csharp
-var EatFood = new ActionBook<Object>();
+var EatFood = new ActionBook<Item>();
 
-EatFood.When(t=>!t.Edible).AtFirst().Instead(t => Say("You can't eat that"));
-EatFood.When(t=>t.Poisoned).Do(t => { SetStatus("Poisoned"); }).Named("Poisoned");
-EatFood.AtLast().Do(t => {
-    Say($"You eat the {t}");
+EatFood.AddRule().When(t => !t.Edible).At(-100).Instead(t => { Say("You can't eat that"); });
+EatFood.AddRule().Named("Poisoned").When(t => t.Poisoned).Do(t => { SetStatus("poisoned"); });
+EatFood.AddRule().Do(t => {
+    Say($"You eat the {t}.");
     IncreaseHealth(t.HealthRecovery);
 });
 
 EatFood.Invoke(thePizza);
 ```
 
-In this toy example, we haven't done much more than made the code less readable than the original.
-But this registers 3 different rules, they don't need to be placed near each other or registered in order.
+In this toy example, we haven't done much more than made the code less readable than the original!
 
-And we can later start modifying those rules themselves as rulebooks
+But there are advantages to this approach. We've registered 3 separate rules for this rulebook. Those rules could be registered anywhere in the code base in any order.
 
+That let's us organize the code better. You can place code for handling eating a magic cake with all the other code for magic cakes, you don't have to put every special case inside the EatFood method.
 
-EatFood["Poisoned"].When(t=>Player.HasPoisonImmunity).Instead(() => {});
+And we can later start modifying those rules themselves as rulebooks, if we want to override reglar behaviour.
 
+```csharp
+// Ignore the Poisoned rul when the player is immune.
+EatFood["Poisoned"].AddRule().When(t=>Player.HasPoisonImmunity).Instead(() => {});
+```
 
-# Rules for sorting rulebooks
-# TODO
+This let's you organize your code in a very modular way.
 
-
-
-# TODO - phases
-
-Inform has multiple rulebooks for one action. Do we want to roll that in somehow?
-It would be great to treat these as sort orders, but that's not so.
-
-If an instead rule succeeds, it skips all other instead rules, and then stops the action.
-If a carry out rule succeeds, it skips all other carry out rules and moves onto the next phase (check).
-
-## Documenting Informs behaviour
-
-Different rulebooks have different defaults:
-Before/Check/Carryout/Report - Make No Descision aka Continue
-After - Rule suceeds
-Instead - Rule fails
-
-The semantics of continue and sucess/failure are the same for each rulebook. It'll keep evaluating rules in that book until it gets a success or failure, then stop.
-
-But in evaluating an action, the result of different rulebooks interpret success/failure differently.
-Before - success/failure stops the overall action
-Instead - success/failure stops the overall action
-Check - success/failure stops the overall action
-Carry Out - always continues
-After - success/failure stops the overall action
-Report - irrelevant
-
- 
-Note, "Stop the action" is not the same as "rule succeeds/fails", it disables some inform 7 housekeeping. https://inform-7-handbook.readthedocs.io/en/latest/chapter_4_actions/rulebooks_&_stop_the_action/
-
-So I guess somehwere internal to inform, it has something like
-
-Abide by the before rulebook;
-Some internal stuff..
-Abide by the instead rulebook;
-Abide by the check rulebook.
-Follow the carry out rulebook;
-Abide by the after rulebook;
-Abide by the report rulebook;
-
-(https://inform-7-handbook.readthedocs.io/en/latest/chapter_4_actions/action_processing__summary/)
-
-# TODO Variables
-
-Ther's not a great story for replacing rulebook variables. Also, inform gets good milage out of
-dynamically scoped variablse like [the noun].
-Do we want something similar?
-
-# TODO Nice API this to implement
-
-FuncBook/ActionBook to mimic Func and Action respectively.
-
-.TypeMatch<Foo, Bar>() as shorthand for .When((t1, t2) => t1 is Foo and t2 is Bar) + smart casting by the builder
-
-.ComponentMatch<Foo>() as shorthand for .When((t1) => t1.TryGetComponent<Foo>()) + smart casting by the builder (Unity only)
-
-Some sort of accumulation API where the results of different rules are combined, rather than taking the first
-
-Support Task framework. Mix and match?
-
-Support coroutines framework. Is this a special type of accumulation?
-
-Wrapping rules. So you can write middleware type rules, not just linear rules
-
-Recursive rulebooks: Rules them selves should be promotable to rulebooks
+# More use cases
 
 
-# Translation of Terms from Inform 7
+# Usage
 
-Rulebook basis - args
-Rulebook variables - no equivalent? Use default args?
+First, you must figure out the *type signature* of the rulebook you are creating. How many arguments does it have, and does it return a value.
 
-Success / Failure - You can throw, or you can make a FuncBook that returns true/false
-Named outcomes - Return values, using an enum
-Make no descision - same as Continue
-Rulebooks producing value - Return values (FuncBook)
-AbideBy - .DoWithResult(() => { return otherRule.AbideBy()})
-AbideBy (multiple rules) - TODO - a bit awkward atm
-AbideByAnonymously
+If the rulebook returns a value, use `FuncBook<>`, otherwise `ActionBook<>`. In either case, you must list the arguments in order as generic type parameters, followed by the return type.
 
-[the noun] [the second noun] etc - Use args. Note, it's probably better to create an Action object with several details and have a single arged rulebook.
-I think technically Inform 7 uses dynamically scoped variables, but C# doesn't have them. You can approximate with globals if you like
+For example, to make a rule book that accepts a `int` and a `double`, and returns a `string`, you'd use `FuncBook<int, double, string>`. 
 
-Before/After/Instead/Carry Out etc - no equivalent? Create multiple rulebooks
+As a special case, an action book that has no arguments uses the non-generic class `ActionBook`.
+
+Once you have your rulebook object, you can populate it with rules. This is easiest done with the fluent API:
+
+```csharp
+var myRulebook = FuncBook<int, double, string>();
+
+myRulebook.AddRule()
+    .Named("myRule")
+    .At(100)
+    .When((i, d) => i > d)
+    .Instead((i, d) => {...});
+```
+
+Finally, you are ready to run your rulebook.
+
+```
+string result = myRulebook.Invoke(1, 1.23);
+```
+
+## Defining rules
+
+All rules must include a body, which is added by the foollowing fluent API methods:
+
+`.Do(body)` - This rule runs the body, then continues to the next rule in the rulebook. Body take the same args as the rulebook, but not return anything.
+`.Instead(body)` - This rule runs the body, then exits the rulebook. Body should be a lambda with the same signature as the rulebook.
+`.Return(value)` - Shorthand for `.Instead((arg1, arg2) => value)` etc
+`.Stop()` - Shorthand for `.Instead((arg1, arg2) => {})` etc
+`.WithBody()` - This rule runs the body, and either continues to the next rule, or exits the rulebook. Returns an `IRuleResult` described in [Rulebook Semantics](#rulebook-semantics).
+`.Wrap()` - See [wrap rules](#wrap-rules)
+`.WithWrapBody()` - As [wrap rules](#wrap-rules), but like `WithBody`, uses `IRuleResult` for the return value.
+
+
+you can also use a more classic API, creating a `FuncRule<>` or `AcitonRule<>` object:
+```csharp
+myRulebook.AddRule(new FuncRule<int, double, string>(){
+    Name = "myRule",
+    Order = 100,
+    Condition = (i, d) => i > d,
+    Body = (i, d) => {
+        return RuleResult.Return("the result value");
+    },
+});
+```
+
+# Rulebook semantics
+
+A rulebook consists of a set of rules. When you `Evaluate` a rulebook, it walks through the set of rules [in order](#rule-ordering), and evaluates each one.
+
+To evaluate a rule:
+
+First, then rule `Condition` is checked, if present. If it returns false, the rule is skipped.
+
+Then, the rule body is called, which returns an `IRuleResult` value. This is an enum that operate much like C#'s `Optional<>` type. It can have values `Continue`/`Stop`/`Return(value)`.
+* If the returned result is `Continue`, then the rulebook moves on to the next rule.
+* If the returned result is `Stop` or `Return` then the rulebook stops evaluation, skipping all later rules. `Stop` is used for `ActionBook` and `Return` for `FuncBook`.
+
+
+## Special Rules
+
+Normal rules are just store their body as a `Func<>` or `Action<>`, but there are special rules that behave differently.
+
+### Wrap Rules
+
+Wrap rules work a bit like [ASP .NET Core Middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-8.0). The body of wrap rules is passed an
+additional argument, which is a method to call when continuing the process the rule book. This allows you complete control over further processing of the rulebook.
+
+Example:
+
+```csharp
+// Make a function for getting the displayed name of an object
+var FormatName = new FuncBook<Object, string>();
+// Add some default behaviour
+FormatName.AddRule().At(0).Instead(o => o.ToString());
+// Add a wrap rule that adds a formal title
+FormatRule.AddRule().At(-1).When(o => o == currentKing).Wrap((contuation, o) => "Lord " + continuation(o));
+// Add a rule that sets a specific name. This rule is run before the wrapper, so won't have "Lord " prepended.
+FormatRule.AddRule().At(-2).When(o => o == player).Return("you")
+```
+
+
+## Rule ordering
