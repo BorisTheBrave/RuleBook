@@ -11,6 +11,7 @@
         private FuncBook<TArg1, TRet>? parent;
         private string? name;
         private float order;
+        private int insertionOrder;
         private FuncRule<TArg1, TRet> orderBefore;
         private FuncRule<TArg1, TRet> orderAfter;
         private Func<TArg1, bool>? condition;
@@ -36,6 +37,7 @@
         }
         public string? Name { get { return name; } set { name = value; } }
         public float Order { get { return order; } set { order = value; Reorder(); } }
+        internal int InsertionOrder { get { return insertionOrder; } set { insertionOrder = value; } }
         public FuncRule<TArg1, TRet> OrderBefore { get { return orderBefore; } set { orderBefore = value; Reorder(); } }
         public FuncRule<TArg1, TRet> OrderAfter { get { return orderAfter; } set { orderAfter = value; Reorder(); } }
         public Func<TArg1, bool>? Condition { get { return condition; } set { condition = value; Reorder(); } }
@@ -135,6 +137,8 @@
             if (this.Order > other.Order) return 1;
             if (this.Condition != null && other.Condition == null) return -1;
             if (this.Condition == null && other.Condition != null) return 1;
+            if (this.InsertionOrder < other.InsertionOrder) return -1;
+            if (this.InsertionOrder > other.InsertionOrder) return 1;
             return 0;
         }
 
@@ -146,6 +150,11 @@
         private void RaiseBodyError()
         {
             throw new Exception($"A rule can only have one of FuncBody, WrapBody or BookBody set. Unset the others first");
+        }
+
+        public override string ToString()
+        {
+            return Name ?? base.ToString();
         }
     }
 }

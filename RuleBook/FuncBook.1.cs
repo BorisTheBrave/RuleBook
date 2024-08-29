@@ -166,6 +166,8 @@ namespace RuleBook
 
         private List<FuncRule<TArg1, TRet>> rules = new List<FuncRule<TArg1, TRet>>();
 
+        private int insertionCount = 0;
+
         public FuncBook() 
         {
         }
@@ -180,6 +182,7 @@ namespace RuleBook
             if (rule.Parent == this)
             {
                 rules.Add(rule);
+                rule.InsertionOrder = insertionCount++;
                 ReorderRule(rule);
             }
             else

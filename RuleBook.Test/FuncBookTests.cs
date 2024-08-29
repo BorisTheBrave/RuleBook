@@ -172,6 +172,36 @@ namespace RuleBook.Test
             }, list);
         }
 
+
+
+        [Test]
+        public void OrderBeforeAfter()
+        {
+            var book = new FuncBook<int, int>();
+            var list = new List<string>();
+            var r1 = book.AddRule().Named("1").Do(_ => list.Add("1"));
+            var r2 = book.AddRule().Named("2").Do(_ => list.Add("2"));
+            var r3 = book.AddRule().Named("3").Do(_ => list.Add("3"));
+            // Later rules are run later
+            book.AddRule().Named("4").InsertBefore(r2).Do(_ => list.Add("4"));
+            book.AddRule().Named("5").InsertBefore(r2).Do(_ => list.Add("5"));
+            book.AddRule().Named("6").InsertAfter(r2).Do(_ => list.Add("6"));
+
+            book.AddRule().Return(0);
+
+            book.Invoke(0);
+
+            CollectionAssert.AreEqual(new[]
+            {
+                "1",
+                "4",
+                "5",
+                "2",
+                "6",
+                "3",
+            }, list);
+        }
+
         [Test]
         public void Mutable_Parent()
         {
