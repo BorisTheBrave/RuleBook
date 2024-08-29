@@ -10,7 +10,9 @@
     {
         private FuncBook<TArg1, TRet>? parent;
         private string? name;
-        private int order;
+        private float order;
+        private FuncRule<TArg1, TRet> orderBefore;
+        private FuncRule<TArg1, TRet> orderAfter;
         private Func<TArg1, bool>? condition;
         // At most one of the following should be defined
         private Func<TArg1, IRuleResult>? funcBody;
@@ -33,7 +35,9 @@
             }
         }
         public string? Name { get { return name; } set { name = value; } }
-        public int Order { get { return order; } set { order = value; Reorder(); } }
+        public float Order { get { return order; } set { order = value; Reorder(); } }
+        public FuncRule<TArg1, TRet> OrderBefore { get { return orderBefore; } set { orderBefore = value; Reorder(); } }
+        public FuncRule<TArg1, TRet> OrderAfter { get { return orderAfter; } set { orderAfter = value; Reorder(); } }
         public Func<TArg1, bool>? Condition { get { return condition; } set { condition = value; Reorder(); } }
         // At most one of the following should be defined
         public Func<TArg1, IRuleResult>? FuncBody
@@ -68,8 +72,65 @@
 
         public bool BookBodyFollow { get { return bookBodyFollow; } set { bookBodyFollow = value; } }
 
+        // Like BookBody, but with auto-promotion
+        public FuncBook<TArg1, TRet> Rulebook
+        {
+            get
+            {
+                if (BookBody != null)
+                    return BookBody;
+                if (WrapBody != null)
+                    throw new Exception("Wrap rules cannot be autopromoted into rulebooks");
+
+                // Auto promote
+                var subRulebook = new FuncBook<TArg1, TRet>();
+                subRulebook.AddRule(new FuncRule<TArg1, TRet>()
+                {
+                    Name = "original",
+                    FuncBody = funcBody,
+                });
+                FuncBody = null;
+                BookBody = subRulebook;
+                BookBodyFollow = false;
+                return subRulebook;
+            }
+        }
+
         public int CompareTo(FuncRule<TArg1, TRet>? other)
         {
+            if (other == null) return 1;
+            // If orderBefore/After is set, do the comparison as if you had the same
+            // position as the referenced rule.
+            // Except you are put before/after that rule itself
+            // If two rules are both before the same rule, then they tie break with their normal sort rules.
+            if (orderBefore != other.orderBefore)
+            {
+                if (orderBefore != null)
+                {
+                    if (other == orderBefore) return -1;
+                    return orderBefore.CompareTo(other);
+                }
+                if (other.orderBefore != null)
+                {
+                    if (this == other.orderBefore) return 1;
+                    return this.CompareTo(other.orderBefore);
+                }
+            }
+            if (orderAfter != other.orderAfter)
+            {
+                if (orderAfter != null)
+                {
+                    if (other == orderAfter) return 1;
+                    return orderAfter.CompareTo(other);
+                }
+                if (other.orderAfter != null)
+                {
+                    if (this == other.orderAfter) return -1;
+                    return this.CompareTo(other.orderAfter);
+                }
+            }
+
+            // Normal sort rules
             if (this.Order < other.Order) return -1;
             if (this.Order > other.Order) return 1;
             if (this.Condition != null && other.Condition == null) return -1;

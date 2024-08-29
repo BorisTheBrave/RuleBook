@@ -78,6 +78,44 @@ namespace RuleBook.Test
             Assert.That(book.Invoke(3), Is.EqualTo(4));
         }
 
+        [Test]
+        public void AbideBy()
+        {
+            var book = new FuncBook<int, bool>();
+            var book2 = new FuncBook<int, bool>();
+
+            book.AddRule().AbideBy(book2);
+            book.AddRule().Return(true);
+            book2.AddRule().Return(false);
+
+            Assert.IsFalse(book.Invoke(1));
+        }
+
+
+        [Test]
+        public void Follow()
+        {
+            var book = new FuncBook<int, bool>();
+            var book2 = new FuncBook<int, bool>();
+
+            book.AddRule().Follow(book2);
+            book.AddRule().Return(true);
+            book2.AddRule().Return(false);
+
+            Assert.IsTrue(book.Invoke(1));
+        }
+
+
+        [Test]
+        public void Autopromote_rule()
+        {
+            var book = new FuncBook<int, int>();
+            var a = book.AddRule().Return(1);
+            a.Rulebook.AddRule().When(x => x % 2 == 0).Return(3);
+
+            Assert.That(book.Invoke(0), Is.EqualTo(3));
+            Assert.That(book.Invoke(1), Is.EqualTo(1));
+        }
 
         [Test]
         public void Ordering()

@@ -12,8 +12,10 @@ namespace RuleBook
             private FuncBook<TArg1, TRet> parent;
 
             private string name;
-            private int order;
-            private Func<TArg1, bool> pre;
+            private float order;
+            private FuncRule<TArg1, TRet> orderBefore;
+            private FuncRule<TArg1, TRet> orderAfter;
+            private Func<TArg1, bool> condition;
             private Func<TArg1, IRuleResult> body;
             private Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody;
             private FuncBook<TArg1, TRet>? bookBody;
@@ -26,7 +28,7 @@ namespace RuleBook
 
             public RuleBuilder When(Func<TArg1, bool> pre)
             {
-                this.pre = pre;
+                this.condition = pre;
                 return this;
             }
 
@@ -36,9 +38,21 @@ namespace RuleBook
                 return this;
             }
 
-            public RuleBuilder At(int order)
+            public RuleBuilder At(float order)
             {
                 this.order = order;
+                return this;
+            }
+
+            public RuleBuilder InsertBefore(FuncRule<TArg1, TRet> other)
+            {
+                this.orderBefore = other;
+                return this;
+            }
+
+            public RuleBuilder InsertAfter(FuncRule<TArg1, TRet> other)
+            {
+                this.orderAfter = other;
                 return this;
             }
 
@@ -136,7 +150,9 @@ namespace RuleBook
                 {
                     Name = name,
                     Order = order,
-                    Condition = pre,
+                    OrderBefore = orderBefore,
+                    OrderAfter = orderAfter,
+                    Condition = condition,
                     FuncBody = body,
                     WrapBody = wrapBody,
                     BookBody = bookBody,
@@ -189,6 +205,8 @@ namespace RuleBook
             // List.Sort() not stable, sadly
             rules = rules.OrderBy(x => x).ToList();
         }
+
+        public FuncRule<TArg1, TRet> this[string name] => rules.SingleOrDefault(x => x.Name == name) ?? throw new KeyNotFoundException("Rule with given name not found in rulebook");
 
 #if IS_ACTION
         public void Invoke(TArg1 arg1)
@@ -246,6 +264,7 @@ namespace RuleBook
                     if(rule.BookBodyFollow)
                     {
                         rule.BookBody.Evaluate(arg1);
+                        ruleResult = RuleResult.Continue;
                     }
                     else
                     {

@@ -4,11 +4,11 @@ A C# library for modular functions, and actions, heavily inspired by [Inform 7](
 
 **What are rulebooks?**
 
-Rulebooks are essentially a fancy form of C#'s Func<> and Action<> generics.
+Rulebooks are essentially a fancy form of C#'s `Func<>` and `Action<>` generics.
 
-Func<> and Action<> can hold a reference to a C# method, or an lambda expression/statement. But the thing they hold is essentially a black box - you cannot do much with it except run it, or check equality.
+`Func<>` and `Action<>` can hold a reference to a C# method, or an lambda expression/statement. But the thing they hold is essentially a black box - you cannot do much with it except run it, or check equality.
 
-RuleBook provies FuncBook<> and ActionBook<>, which work similarly to their counterparts. But these rulebook objects are built out of individual rules, which can be individually inspected and mutated.
+RuleBook provies `FuncBook<>` and `ActionBook<>`, which work similarly to their counterparts. But these rulebook objects are built out of individual rules, which can be individually inspected and mutated.
 
 Overall, rulebooks give a systematic way of handling a bunch of useful programming patterns, including events, multiple dispatch, modding and code weaving.
 
@@ -22,12 +22,12 @@ All that's a bit abstract, so let's look at a concrete example. Suppose you are 
 ```csharp
 void EatFood(Item t)
 {
-    if(!t.Edible)
+    if (!t.Edible)
     {
         Say("You can't eat that");
         return;
     }
-    if(t.Poisoned)
+    if (t.Poisoned)
     {
         SetStatus("poisoned");
     }
@@ -64,7 +64,7 @@ And we can later start modifying those rules themselves as rulebooks, if we want
 
 ```csharp
 // Ignore the Poisoned rule when the player is immune.
-EatFood["Poisoned"].Rulebook.AddRule().When(t=>Player.HasPoisonImmunity).Instead(() => {});
+EatFood["Poisoned"].Rulebook.AddRule().When(t => Player.HasPoisonImmunity).Stop();
 ```
 
 This let's you organize your code in a very modular way.
@@ -167,7 +167,22 @@ FormatRule.AddRule().At(-2).When(o => o == player).Return("you")
 
 ### Rulebook Rules
 
-A rule can itself contain a sub rulebook of rules to execute.
+A rule can itself contain a sub rulebook of rules to execute. Nesting rule books like this gives a lot tighter control over the ordering of rules.
+
+If you have a simple rule, and read from `rule.Rulebook`, the library will automatically promote original rule to contain a sub rulebook, where the sub rulebook contains a single
+rule with the body of the original rule. This allows you to take an rule, and add special cases to it.
+
+```csharp
+myRule.Rulebook.AddRule().When(...).Instead(...);
+```
 
 
 ## Rule ordering
+
+If a rule has `OrderBefore`/`OrderAfter`, then it's inserted directly before/after the referenced rule in the sort order.
+
+Otherwise, rules are sorted according to their `Order` property in ascending order. (i.e. order -1 rules run before order 1 rules)
+
+In case of a tie, rules with a condition are ordered before those without.
+
+If still tied, insertion order is preserved.

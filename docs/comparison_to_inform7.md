@@ -45,6 +45,8 @@ There's no equivalent for "abide by anonymously" as the origin of a rule result 
 
 This library has much simpler sorting rules than Inform 7. Expect to manually set the order a lot more frequently as a consequence.
 
+Also, Inform 7 sorts rulebooks once at start, and then the rules can be arbitrarily re-ordered. Rules in this library are always sorted according to their properties.
+
 
 ## Rulebook default outcomes
 
