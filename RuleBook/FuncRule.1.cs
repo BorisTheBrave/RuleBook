@@ -1,7 +1,5 @@
 ﻿namespace RuleBook
 {
-    // TODO Variants for different args, void returns, coroutines, accumulating
-
     /// <summary>
     /// Represents a single rule that can be inserted into a FuncBook.
     /// Rules can only belong to a single rulebook.

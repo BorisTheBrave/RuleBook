@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Diagnostics.CodeAnalysis;
 
 namespace RuleBook
 {
@@ -272,12 +273,16 @@ namespace RuleBook
             {
                 return;
             }
-            // TODO: Give a better explanation. Perhaps you got the types wrong?
-            throw new Exception("Unexpected rule result");
+            ThrowUnexpectedRuleResult(ruleResult);
         }
 #else
         public TRet Invoke(TArg1 arg1)
         {
+            // This will be caught later, but it's a common error case, so let's make it obvious.
+            if (rules.Count == 0)
+            {
+                throw new Exception("No rules in rulebook, it cannot produce a result.");
+            }
             var ruleResult = Evaluate(arg1);
             if (ruleResult == RuleResult.Continue || ruleResult == null)
             {
@@ -340,8 +345,8 @@ namespace RuleBook
                     case ContinueRuleResult _:
                         continue;
                     default:
-                        // TODO: Give a better explanation. Perhaps you got the types wrong?
-                        throw new Exception("Unexpected rule result");
+                        ThrowUnexpectedRuleResult(ruleResult);
+                        break;
                 }
             }
             return RuleResult.Continue;
@@ -360,16 +365,20 @@ namespace RuleBook
             {
                 return;
             }
-            // TODO: Give a better explanation. Perhaps you got the types wrong?
-            throw new Exception("Unexpected rule result");
+            ThrowUnexpectedRuleResult(ruleResult);
         }
 #else
         public async Task<TRet> InvokeAsync(TArg1 arg1)
         {
+            // This will be caught later, but it's a common error case, so let's make it obvious.
+            if(rules.Count == 0)
+            {
+                throw new Exception("No rules in rulebook, it cannot produce a result.");
+            }
             var ruleResult = await EvaluateAsync(arg1);
             if (ruleResult == RuleResult.Continue || ruleResult == null)
             {
-                throw new Exception("No rule produced a result");
+                throw new Exception("No rule produced a result.");
             }
             return ruleResult.GetReturnValueOrThrow<TRet>();
         }
@@ -428,11 +437,28 @@ namespace RuleBook
                     case ContinueRuleResult _:
                         continue;
                     default:
-                        // TODO: Give a better explanation. Perhaps you got the types wrong?
-                        throw new Exception("Unexpected rule result");
+                        ThrowUnexpectedRuleResult(ruleResult);
+                        break;
                 }
             }
             return RuleResult.Continue;
+        }
+
+        [DoesNotReturn]
+        internal static void ThrowUnexpectedRuleResult(IRuleResult ruleResult)
+        {
+#if IS_ACTION
+            if (ruleResult is IReturnRuleResult rrr)
+            {
+                throw new Exception($"Encountered ReturnRuleResult<{rrr.Type}> in a ActionBook. You can't return from an ActionBook. You either want RuleResult.Stop, or should be using a FuncBook");
+            }
+#else
+            if (ruleResult == RuleResult.Stop)
+            {
+                throw new Exception($"Encountered RuleResult.Stop in a FuncBook. You can't stop a FuncBook, you must return a value. You either want RuleResult.Return, or should be using an ActionBook");
+            }
+#endif
+            throw new Exception($"Unexpected rule result: {ruleResult.GetType().Name}");
         }
 
     }

@@ -28,8 +28,12 @@ namespace RuleBook
         private StopRuleResult() { }
     }
 
+    internal interface IReturnRuleResult
+    {
+        Type Type { get; }
+    }
 
-    public class ReturnRuleResult<T> : IRuleResult
+    public class ReturnRuleResult<T> : IRuleResult, IReturnRuleResult
     {
         public ReturnRuleResult(T value)
         {
@@ -37,6 +41,8 @@ namespace RuleBook
         }
 
         public T Value { get; private set; }
+
+        Type IReturnRuleResult.Type => typeof(T);
 
         public override bool Equals(object? obj)
         {
@@ -131,8 +137,8 @@ namespace RuleBook
             {
                 return value;
             }
-            // TODO: Give a better explanation. Perhaps you got the types wrong?
-            throw new Exception("Unexpected rule result");
+            FuncBook<TValue>.ThrowUnexpectedRuleResult(ruleResult);
+            throw new Exception("Impossible");
         }
 
         public static async Task<TValue> GetReturnValueOrThrowAsync<TValue>(this IRuleResult ruleResult)
@@ -141,8 +147,8 @@ namespace RuleBook
             {
                 return value;
             }
-            // TODO: Give a better explanation. Perhaps you got the types wrong?
-            throw new Exception("Unexpected rule result");
+            FuncBook<TValue>.ThrowUnexpectedRuleResult(ruleResult);
+            throw new Exception("Impossible");
         }
     }
 }
