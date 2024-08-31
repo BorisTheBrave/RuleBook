@@ -135,9 +135,10 @@ To evaluate a rule:
 
 First, then rule `Condition` is checked, if present. If it returns false, the rule is skipped.
 
-Then, the rule body is called, which returns an `IRuleResult` value. This is an enum that operate much like C#'s `Optional<>` type. It can have values `Continue`/`Stop`/`Return(value)`.
+Then, the rule body is called, which returns an `IRuleResult` value. This is an enum that operate much like C#'s `Optional<>` type. It can have values `Continue`/`Stop`/`Return(value)`/`Async`.
 * If the returned result is `Continue`, then the rulebook moves on to the next rule.
 * If the returned result is `Stop` or `Return` then the rulebook stops evaluation, skipping all later rules. `Stop` is used for `ActionBook` and `Return` for `FuncBook`.
+* If the returned result is `Async`, then the actual result is awaited on synchronously or asynchronous.
 
 
 The `Invoke` method works identical to `Evaluate`, then tries to interpret the `IRuleResult`. For `FuncBook<>`s that finish with a `Return(value)` result, they will throw an exception.
@@ -150,7 +151,13 @@ Normal rules are just store their body as a `Func<>` or `Action<>`, but there ar
 ### Wrap Rules
 
 Wrap rules work a bit like [ASP .NET Core Middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-8.0). The body of wrap rules is passed an
-additional argument, which is a method to call when continuing the process the rule book. This allows you complete control over further processing of the rulebook.
+additional argument, called the *continuation*. This is a method to call when continuing the process the rule book.
+
+This allows you complete control over further processing of the rulebook, including:
+* Putting code before/after other rules, `including try/catch` or `try/finally`
+* Changing the arguments the rest of the rules will recieve
+* Changing the return value after the rest of the rules have run.
+* Skipping the rest of the rules entirely, by not calling the continuation.
 
 Example:
 
@@ -158,10 +165,11 @@ Example:
 // Make a function for getting the displayed name of an object
 var FormatName = new FuncBook<Object, string>();
 // Add some default behaviour
-FormatName.AddRule().At(0).Instead(o => o.ToString());
+FormatName.AddRule().At(0).Instead(o => o.Name);
 // Add a wrap rule that adds a formal title
 FormatRule.AddRule().At(-1).When(o => o == currentKing).Wrap((contuation, o) => "Lord " + continuation(o));
-// Add a rule that sets a specific name. This rule is run before the wrapper, so won't have "Lord " prepended.
+// Add a rule that sets a specific name. 
+// This rule is run before the wrapper, so won't have "Lord " prepended even if currentKing == player.
 FormatRule.AddRule().At(-2).When(o => o == player).Return("you")
 ```
 

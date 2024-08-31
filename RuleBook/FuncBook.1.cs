@@ -8,6 +8,9 @@ namespace RuleBook
     /// </summary>
     public class FuncBook<TArg1, TRet>
     {
+        /// <summary>
+        /// A typesafe class for building a FuncRule<TArg1, TRet>
+        /// </summary>
         public class RuleBuilder
         {
             private FuncBook<TArg1, TRet> parent;
@@ -27,30 +30,50 @@ namespace RuleBook
                 this.parent = parent;
             }
 
+            /// <summary>
+            /// If the condition return false, the rule is skipped.
+            /// Sets <see cref="FuncRule{TArg1, TRet}.Condition"/>.
+            /// </summary>
             public RuleBuilder When(Func<TArg1, bool> pre)
             {
                 this.condition = pre;
                 return this;
             }
 
+            /// <summary>
+            /// Name is used for looking up rules in a rulebook.
+            /// Sets <see cref="FuncRule{TArg1, TRet}.Name"/>.
+            /// </summary>
             public RuleBuilder Named(string name)
             {
                 this.name = name;
                 return this;
             }
 
+            /// <summary>
+            /// The relative order of this rule, lower is earlier.
+            /// Sets <see cref="FuncRule{TArg1, TRet}.Order"/>.
+            /// </summary>
             public RuleBuilder At(float order)
             {
                 this.order = order;
                 return this;
             }
 
+            /// <summary>
+            /// Sorts this rule immediately before the other rule.
+            /// Sets <see cref="FuncRule{TArg1, TRet}.OrderBefore"/>.
+            /// </summary>
             public RuleBuilder InsertBefore(FuncRule<TArg1, TRet> other)
             {
                 this.orderBefore = other;
                 return this;
             }
 
+            /// <summary>
+            /// Sorts this rule immediately after the other rule.
+            /// Sets <see cref="FuncRule{TArg1, TRet}.OrderAfter"/>.
+            /// </summary>
             public RuleBuilder InsertAfter(FuncRule<TArg1, TRet> other)
             {
                 this.orderAfter = other;
@@ -58,35 +81,54 @@ namespace RuleBook
             }
 
 #if IS_ACTION
+            /// <summary>
+            /// Sets a body that stops the rulebook. Finishes building the rule.
+            /// </summary>
             public ActionRule<TArg1> Stop()
             {
                 this.body = (arg1) => { return RuleResult.Stop; };
                 return Finish();
             }
 
+            /// <summary>
+            /// Sets a body that runs some code then stops the rulebook. Finishes building the rule.
+            /// </summary>
             public ActionRule<TArg1> Instead(Action<TArg1> body)
             {
                 this.body = (arg1) => { body(arg1); return RuleResult.Stop; };
                 return Finish();
             }
 
+            /// <summary>
+            /// Sets a body that runs some async code then stops the rulebook. Finishes building the rule.
+            /// </summary>
             public ActionRule<TArg1> Instead(Func<TArg1, Task> body)
             {
                 this.body = (arg1) => RuleResult.StopWhen(body(arg1));
                 return Finish();
             }
 #else
+            /// <summary>
+            /// Sets a body that stops the rulebooks, returning value. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> Return(TRet value)
             {
                 this.body = (arg1) => RuleResult.Return(value);
                 return Finish();
             }
 
+            /// <summary>
+            /// Sets a body that runs some code, then stops the rulebook, returning a value. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> Instead(Func<TArg1, TRet> body)
             {
                 this.body = (arg1) => RuleResult.Return(body(arg1));
                 return Finish();
             }
+
+            /// <summary>
+            /// Sets a body that runs some async code, then stops the rulebook, returning a value. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> Instead(Func<TArg1, Task<TRet>> body)
             {
                 this.body = (arg1) => RuleResult.ReturnWhen(body(arg1));
@@ -94,24 +136,36 @@ namespace RuleBook
             }
 #endif
 
+            /// <summary>
+            /// Sets a body that runs some code, then continues the rulebook. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> Do(Action<TArg1> body)
             {
                 this.body = (arg1) => { body(arg1); return RuleResult.Continue; };
                 return Finish();
             }
 
+            /// <summary>
+            /// Sets a body that runs some async code, then continues the rulebook. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> Do(Func<TArg1, Task> body)
             {
                 this.body = (arg1) => RuleResult.StopWhen(body(arg1));
                 return Finish();
             }
 
+            /// <summary>
+            /// Sets a body that runs some code that indicates what the rulebook should do next. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> WithBody(Func<TArg1, IRuleResult> body)
             {
                 this.body = body;
                 return Finish();
             }
 
+            /// <summary>
+            /// Sets a body that runs some async code that indicates what the rulebook should do next. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> WithBody(Func<TArg1, Task<IRuleResult>> body)
             {
                 this.body = (arg1) => RuleResult.WrapAsync(body(arg1));
@@ -119,6 +173,9 @@ namespace RuleBook
             }
 
 #if IS_ACTION
+            /// <summary>
+            /// Sets a body that wraps invocation of the remaining rules in the rulebook. Finishes building the rule.
+            /// </summary>
             public ActionRule<TArg1> Wrap(Action<Action<TArg1>, TArg1> wrapBody)
             {
                 this.wrapBody = (continuation, arg1) =>
@@ -132,7 +189,26 @@ namespace RuleBook
                 };
                 return Finish();
             }
+
+            /// <summary>
+            /// Sets a body that asynchronously wraps invocation of the remaining rules in the rulebook. Finishes building the rule.
+            /// </summary>
+            public FuncRule<TArg1, TRet> Wrap(Func<Func<TArg1, Task>, TArg1, Task> wrapBody)
+            {
+                this.wrapBody = (continuation, arg1) =>
+                {
+                    async Task Continue(TArg1 arg1)
+                    {
+                        await continuation(arg1).Await();
+                    }
+                    return RuleResult.StopWhen(wrapBody(Continue, arg1));
+                };
+                return Finish();
+            }
 #else
+            /// <summary>
+            /// Sets a body that wraps invocation of the remaining rules in the rulebook. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> Wrap(Func<Func<TArg1, TRet>, TArg1, TRet> wrapBody)
             {
                 this.wrapBody = (continuation, arg1) =>
@@ -145,6 +221,10 @@ namespace RuleBook
                 };
                 return Finish();
             }
+
+            /// <summary>
+            /// Sets a body that asynchronously wraps invocation of the remaining rules in the rulebook. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> Wrap(Func<Func<TArg1, Task<TRet>>, TArg1, Task<TRet>> wrapBody)
             {
                 this.wrapBody = (continuation, arg1) =>
@@ -159,12 +239,18 @@ namespace RuleBook
             }
 #endif
 
+            /// <summary>
+            /// Sets a body that wraps evaluation of the remaining rules in the rulebook. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> WithWrapBody(Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody)
             {
                 this.wrapBody = wrapBody;
                 return Finish();
             }
 
+            /// <summary>
+            /// Sets a body that asynchronously wraps evaluation of the remaining rules in the rulebook. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> WithWrapBody(Func<Func<TArg1, Task<IRuleResult>>, TArg1, Task<IRuleResult>> wrapBody)
             {
                 this.wrapBody = (continuation, arg1) =>
@@ -178,6 +264,9 @@ namespace RuleBook
                 return Finish();
             }
 
+            /// <summary>
+            /// Sets a body calls into another rulebook, and uses its result. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> AbideBy(FuncBook<TArg1, TRet> subFuncBook)
             {
                 this.bookBody = subFuncBook;
@@ -185,12 +274,17 @@ namespace RuleBook
                 return Finish();
             }
 
+            /// <summary>
+            /// Sets a body calls into another rulebook, and ignores its result. Finishes building the rule.
+            /// </summary>
             public FuncRule<TArg1, TRet> Follow(FuncBook<TArg1, TRet> subFuncBook)
             {
                 this.bookBody = subFuncBook;
                 this.bookBodyFollow = true;
                 return Finish();
             }
+
+            // TODO: Should be able to follow/abide by an ActionBook from a FuncBook?
 
 
             private FuncRule<TArg1, TRet> Finish()
@@ -212,7 +306,8 @@ namespace RuleBook
             }
         }
 
-
+        // This is only ever updated by replacement, so
+        // that you can edit rules in the middle of running rules without issue.
         private List<FuncRule<TArg1, TRet>> rules = new List<FuncRule<TArg1, TRet>>();
 
         private int insertionCount = 0;
@@ -230,8 +325,10 @@ namespace RuleBook
         {
             if (rule.Parent == this)
             {
-                rules.Add(rule);
+                var r = rules.ToList();
+                r.Add(rule);
                 rule.InsertionOrder = insertionCount++;
+                rules = r;
                 ReorderRule(rule);
             }
             else
@@ -244,7 +341,9 @@ namespace RuleBook
         {
             if (rule.Parent == this)
             {
-                rules.Remove(rule);
+                var r = rules.ToList();
+                r.Remove(rule);
+                rules = r;
             }
             else
             {
@@ -292,9 +391,9 @@ namespace RuleBook
         }
 #endif
 
-        public IRuleResult Evaluate(TArg1 arg1) => Evaluate(arg1, 0);
+        public IRuleResult Evaluate(TArg1 arg1) => Evaluate(arg1, rules, 0);
 
-        private IRuleResult Evaluate(TArg1 arg1, int startingAt)
+        private static IRuleResult Evaluate(TArg1 arg1, List<FuncRule<TArg1, TRet>> rules, int startingAt)
         {
             // TODO: Protect against mutation while this is running?
             for (var i = startingAt; i < rules.Count; i++)
@@ -313,7 +412,7 @@ namespace RuleBook
                 {
                     // Tail call, as we're doing the rest of the evaluation
                     // in the first method.
-                    return rule.WrapBody((arg1) => Evaluate(arg1, startingAt + 1), arg1);
+                    return rule.WrapBody((arg1) => Evaluate(arg1, rules, startingAt + 1), arg1);
                 }
                 else if (rule.BookBody != null)
                 {
@@ -384,11 +483,10 @@ namespace RuleBook
         }
 #endif
 
-        public Task<IRuleResult> EvaluateAsync(TArg1 arg1) => EvaluateAsync(arg1, 0);
+        public Task<IRuleResult> EvaluateAsync(TArg1 arg1) => EvaluateAsync(arg1, rules, 0);
 
-        private async Task<IRuleResult> EvaluateAsync(TArg1 arg1, int startingAt)
+        private static async Task<IRuleResult> EvaluateAsync(TArg1 arg1, List<FuncRule<TArg1, TRet>> rules, int startingAt)
         {
-            // TODO: Protect against mutation while this is running?
             for (var i = startingAt; i < rules.Count; i++)
             {
                 var rule = rules[i];
@@ -405,7 +503,7 @@ namespace RuleBook
                 {
                     // Tail call, as we're doing the rest of the evaluation
                     // in the first method.
-                    return rule.WrapBody((arg1) => RuleResult.WrapAsync(EvaluateAsync(arg1, startingAt + 1)), arg1);
+                    return rule.WrapBody((arg1) => RuleResult.WrapAsync(EvaluateAsync(arg1, rules, startingAt + 1)), arg1);
                 }
                 else if (rule.BookBody != null)
                 {

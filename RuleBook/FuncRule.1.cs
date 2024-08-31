@@ -33,13 +33,38 @@
                 parent?.AddRule(this);
             }
         }
+        /// <summary>
+        /// Name is used for looking up rules in a rulebook.
+        /// </summary>
         public string? Name { get { return name; } set { name = value; } }
+        /// <summary>
+        /// The relative order of this rule, lower is earlier.
+        /// Updating this will change the position in the rulebook.
+        /// </summary>
         public float Order { get { return order; } set { order = value; Reorder(); } }
         internal int InsertionOrder { get { return insertionOrder; } set { insertionOrder = value; } }
+        /// <summary>
+        /// Sorts this rule immediately after the other rule.
+        /// Sets <see cref="FuncRule{TArg1, TRet}.OrderBefore"/>.
+        /// Updating this will change the position in the rulebook.
+        /// </summary>
         public FuncRule<TArg1, TRet> OrderBefore { get { return orderBefore; } set { orderBefore = value; Reorder(); } }
+        /// <summary>
+        /// Sorts this rule immediately after the other rule.
+        /// Sets <see cref="FuncRule{TArg1, TRet}.OrderBefore"/>.
+        /// Updating this will change the position in the rulebook.
+        /// </summary>
         public FuncRule<TArg1, TRet> OrderAfter { get { return orderAfter; } set { orderAfter = value; Reorder(); } }
+
+        /// <summary>
+        /// If set, the rulebook will evaluate this before the rule body. If it returns false, the rule is skipped.
+        /// </summary>
         public Func<TArg1, bool>? Condition { get { return condition; } set { condition = value; Reorder(); } }
         // At most one of the following should be defined
+        /// <summary>
+        /// The body of a normal rule, called when evaluating it.
+        /// Cannot be set with WrapBody or BookBody.
+        /// </summary>
         public Func<TArg1, IRuleResult>? FuncBody
         {
             get { return funcBody; }
@@ -49,6 +74,11 @@
                 funcBody = value;
             }
         }
+
+        /// <summary>
+        /// The body of the wrap rule, called when evaluating it.
+        /// Cannot be set with FuncBody or BookBody.
+        /// </summary>
         public Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult>? WrapBody
         {
             get { return wrapBody; }
@@ -59,6 +89,10 @@
             }
         }
 
+        /// <summary>
+        /// The body of a rulebook rule. This rulebook is evaluated when the rule is.
+        /// Cannot be set with FuncBody or WrapBody.
+        /// </summary>
         public FuncBook<TArg1, TRet>? BookBody
         {
             get { return bookBody; }
@@ -70,9 +104,19 @@
 
         }
 
+        /// <summary>
+        /// If true, then the result of evaluating BookBody will be discarded, and the rule
+        /// will always result in Continue.
+        /// </summary>
         public bool BookBodyFollow { get { return bookBodyFollow; } set { bookBodyFollow = value; } }
 
         // Like BookBody, but with auto-promotion
+        /// <summary>
+        /// For normal rules, this autopromotes the rule into a rulebook rule containing a single subrule.
+        /// For rulebook rules, this returns the rulbook.
+        /// 
+        /// You can use this to override the behaviour of any specific rule in a rulebook.
+        /// </summary>
         public FuncBook<TArg1, TRet> Rulebook
         {
             get

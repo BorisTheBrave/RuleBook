@@ -41,10 +41,13 @@ def transform_n(src, dst, n):
         line = line.replace("!TARGS!", ", ".join([f"TArg{i} arg{i}" for i in r]))
         if n == 0:
             line = line.replace("ActionBook<>", "ActionBook")
+            line = line.replace("ActionBook{}", "ActionBook")
             line = line.replace("ActionRule<>", "ActionRule")
+            line = line.replace("ActionRule{}", "ActionRule")
             line = line.replace("Action<>", "Action")
             line = line.replace(", )", ")")
             line = line.replace(", >", ">")
+            line = line.replace(", }", "}")
 
         results.append(line)
 
