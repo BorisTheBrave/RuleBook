@@ -186,3 +186,9 @@ Otherwise, rules are sorted according to their `Order` property in ascending ord
 In case of a tie, rules with a condition are ordered before those without.
 
 If still tied, insertion order is preserved.
+
+# Async support
+
+Rulebooks have built in support for Tasks. Rule can be declared async by simply having their body return `Task<>` or `Task`. And rulebooks can be invoked asynchronously with `InvokeAsync`.
+
+Async and sync rules can be freely mixed in one rulebook. Async rules will automatically block if called in a synchronous way.
