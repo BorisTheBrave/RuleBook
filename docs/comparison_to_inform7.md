@@ -12,6 +12,8 @@ Inform 7 supports only a single argument - this library supports up to 8. Howeve
 
 There's no easy equivalent of [rulebook variables](https://ganelson.github.io/inform-website/book/WI_19_10.html). If you need something like this, consider adding an extra argument, which is some sort of mutable object you can fit ths data in.
 
+The HandleAttack example demos something like this.
+
 ## Success and Failure
 
 Rulebook [success/failure](https://ganelson.github.io/inform-website/book/WI_19_11.html) is easiest modelled as a `FuncBook<>` with return type `bool`. You can also use an `ActionBook<>` and throw in the case of failure.
@@ -34,14 +36,14 @@ If you want to abide by or follow a rulebook in a block of C# code, use the foll
 // Follow
 otherRulebook.Invoke(arg1, arg2);
 // Abide by
-var ruleResult = otherRulebook.Invoke(arg1, arg2);
+var ruleResult = otherRulebook.Evaluate(arg1, arg2);
 if (ruleResult != RuleResult.Continue)
     return ruleResult;
 ```
 
 There's no equivalent for "abide by anonymously" as the origin of a rule result is not tracked in the first place.
 
-## Sorting rulebooks
+## Sorting rules
 
 This library has much simpler sorting rules than Inform 7. Expect to manually set the order a lot more frequently as a consequence.
 
@@ -56,9 +58,9 @@ For static typing reasons there is no equivalent, and rules must explicitly pick
 
 ## Before, After, Carry Out, etc
 
-This library supplies you with the core implementation of a rulebook. It does not create a bunch of default rulebooks for you to work with. Inform does this as part of the *Standard Rules*.
+This library supplies you with the core implementation of a rulebook. It does **not** create a bunch of default rulebooks for you to work with. Inform does this as part of the *Standard Rules*.
 
-In Inform 7, Before rules are implemented by inserting rules into a `before` rulebook. Another rulebook, `action-processing rules` is responsible for calling this.
+In Inform 7, Before rules are implemented by inserting rules into a `before` rulebook. Another rulebook, `action processing rules` is responsible for calling this.
 
 You could approximate Inform's behaviour by creating a similar setup:
 
