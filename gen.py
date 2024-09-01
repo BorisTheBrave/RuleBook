@@ -1,3 +1,5 @@
+# Run this module to generate all the Func and Action variants for different parameter counts.
+
 import os
 from stat import S_IREAD,S_IRGRP,S_IROTH
 

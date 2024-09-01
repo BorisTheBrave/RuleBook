@@ -1,5 +1,7 @@
 ﻿using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace RuleBook
 {
@@ -20,6 +22,7 @@ namespace RuleBook
             private FuncRule<TArg1, TRet> orderBefore;
             private FuncRule<TArg1, TRet> orderAfter;
             private Func<TArg1, bool> condition;
+            private string conditionText;
             private Func<TArg1, IRuleResult> body;
             private Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody;
             private FuncBook<TArg1, TRet>? bookBody;
@@ -34,9 +37,10 @@ namespace RuleBook
             /// If the condition return false, the rule is skipped.
             /// Sets <see cref="FuncRule{TArg1, TRet}.Condition"/>.
             /// </summary>
-            public RuleBuilder When(Func<TArg1, bool> pre)
+            public RuleBuilder When(Func<TArg1, bool> condition, [CallerArgumentExpression(nameof(condition))] string conditionText = null)
             {
-                this.condition = pre;
+                this.condition = condition;
+                this.conditionText = conditionText;
                 return this;
             }
 
@@ -291,7 +295,7 @@ namespace RuleBook
             {
                 var rule = new FuncRule<TArg1, TRet>
                 {
-                    Name = name,
+                    Name = name ?? conditionText,
                     Order = order,
                     OrderBefore = orderBefore,
                     OrderAfter = orderAfter,
@@ -359,6 +363,8 @@ namespace RuleBook
 
         public FuncRule<TArg1, TRet> this[string name] => rules.SingleOrDefault(x => x.Name == name) ?? throw new KeyNotFoundException("Rule with given name not found in rulebook");
 
+        #region Evaluation
+
 #if IS_ACTION
         public void Invoke(TArg1 arg1)
         {
@@ -412,7 +418,7 @@ namespace RuleBook
                 {
                     // Tail call, as we're doing the rest of the evaluation
                     // in the first method.
-                    return rule.WrapBody((arg1) => Evaluate(arg1, rules, startingAt + 1), arg1);
+                    return rule.WrapBody((arg1) => Evaluate(arg1, rules, i + 1), arg1);
                 }
                 else if (rule.BookBody != null)
                 {
@@ -503,7 +509,7 @@ namespace RuleBook
                 {
                     // Tail call, as we're doing the rest of the evaluation
                     // in the first method.
-                    return rule.WrapBody((arg1) => RuleResult.WrapAsync(EvaluateAsync(arg1, rules, startingAt + 1)), arg1);
+                    return rule.WrapBody((arg1) => RuleResult.WrapAsync(EvaluateAsync(arg1, rules, i + 1)), arg1);
                 }
                 else if (rule.BookBody != null)
                 {
@@ -542,6 +548,8 @@ namespace RuleBook
             return RuleResult.Continue;
         }
 
+        #endregion
+
         [DoesNotReturn]
         internal static void ThrowUnexpectedRuleResult(IRuleResult ruleResult)
         {
@@ -557,6 +565,53 @@ namespace RuleBook
             }
 #endif
             throw new Exception($"Unexpected rule result: {ruleResult.GetType().Name}");
+        }
+
+
+        public string FormatTree()
+        {
+            var sb = new StringBuilder();
+            FormatTree(sb, "");
+            return sb.ToString();
+        }
+
+        private void FormatTree(StringBuilder sb, string indent)
+        {
+            foreach(var rule in rules)
+            {
+                var desc = "";
+                if (rule.FuncBody != null)
+                {
+                    desc = "Rule";
+                }
+                else if(rule.WrapBody != null)
+                {
+                    desc = "Wrap rule";
+                }
+                else if(rule.BookBody != null)
+                {
+                    desc = $"{(rule.BookBodyFollow ? "Follow" : "Abide by")} rulebook rule";
+                }
+                else
+                {
+                    throw new Exception();
+                }
+                if (rule.Name != null)
+                {
+                    // TODO Better String escaping?
+                    desc += $" named \"{rule.Name.Replace("\n", "\\n").Replace("\"", "\\\"")}\"";
+                }
+                if (rule.BookBody != null)
+                {
+                    desc += " with rules:";
+                }
+                sb.AppendLine(indent + desc);
+                if(rule.BookBody != null)
+                {
+                    rule.BookBody.FormatTree(sb, indent + "  ");
+                }
+                    
+            }
         }
 
     }
