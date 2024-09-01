@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RuleBook\RuleBook.csproj" />
+    <ProjectReference Include="..\BorisTheBrave.RuleBook\BorisTheBrave.RuleBook.csproj" />
   </ItemGroup>
 
   <ItemGroup>

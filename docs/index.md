@@ -68,7 +68,7 @@ EatFood["Poisoned"].Rulebook.AddRule().When(t => Player.HasPoisonImmunity).Stop(
 
 This let's you organize your code in a very modular way.
 
-You can find more examples in the Test/Examples folder.
+You can find more examples in the [Examples](BorisTheBrave.RuleBook.Test/Examples) folder.
 
 # Usage
 

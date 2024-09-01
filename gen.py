@@ -61,14 +61,14 @@ def transform_n(src, dst, n):
 
 
 if __name__ == '__main__':
-    if not os.path.exists("RuleBook/Gen"):
-        os.makedirs("RuleBook/Gen")
-    transform_action('RuleBook/FuncRule.1.cs', f'RuleBook/Gen/ActionRule.1.cs')
-    transform_action('RuleBook/FuncBook.1.cs', f'RuleBook/Gen/ActionBook.1.cs')
+    if not os.path.exists("BorisTheBrave.RuleBook/Gen"):
+        os.makedirs("BorisTheBrave.RuleBook/Gen")
+    transform_action('BorisTheBrave.RuleBook/FuncRule.1.cs', f'BorisTheBrave.RuleBook/Gen/ActionRule.1.cs')
+    transform_action('BorisTheBrave.RuleBook/FuncBook.1.cs', f'BorisTheBrave.RuleBook/Gen/ActionBook.1.cs')
     for n in range(0, 8+1):
         if n == 1:
             continue
-        transform_n('RuleBook/FuncRule.1.cs', f'RuleBook/Gen/FuncRule.{n}.cs', n)
-        transform_n('RuleBook/FuncBook.1.cs', f'RuleBook/Gen/FuncBook.{n}.cs', n)
-        transform_n('RuleBook/Gen/ActionRule.1.cs', f'RuleBook/Gen/ActionRule.{n}.cs', n)
-        transform_n('RuleBook/Gen/ActionBook.1.cs', f'RuleBook/Gen/ActionBook.{n}.cs', n)
+        transform_n('BorisTheBrave.RuleBook/FuncRule.1.cs', f'BorisTheBrave.RuleBook/Gen/FuncRule.{n}.cs', n)
+        transform_n('BorisTheBrave.RuleBook/FuncBook.1.cs', f'BorisTheBrave.RuleBook/Gen/FuncBook.{n}.cs', n)
+        transform_n('BorisTheBrave.RuleBook/Gen/ActionRule.1.cs', f'BorisTheBrave.RuleBook/Gen/ActionRule.{n}.cs', n)
+        transform_n('BorisTheBrave.RuleBook/Gen/ActionBook.1.cs', f'BorisTheBrave.RuleBook/Gen/ActionBook.{n}.cs', n)
