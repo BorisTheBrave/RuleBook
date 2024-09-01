@@ -12,6 +12,8 @@ RuleBook provies `FuncBook<>` and `ActionBook<>`, which work similarly to their 
 
 Overall, rulebooks give a systematic way of handling a bunch of useful programming patterns, including events, multiple dispatch, modding and code weaving.
 
+Rulebooks are not an elaborate rules evaluation engine, it's a lightweight way of stitching together bits of functionality.
+
 # Example
 
 All that's a bit abstract, so let's look at a concrete example. Suppose you are coding some logic for a game. You might have a function like:

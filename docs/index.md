@@ -12,6 +12,8 @@ RuleBook provies `FuncBook<>` and `ActionBook<>`, which work similarly to their 
 
 Overall, rulebooks give a systematic way of handling a bunch of useful programming patterns, including events, multiple dispatch, modding and code weaving.
 
+Rulebooks are not an elaborate rules evaluation engine, it's a lightweight way of stitching together bits of functionality.
+
 # Example
 
 All that's a bit abstract, so let's look at a concrete example. Suppose you are coding some logic for a game. You might have a function like:
@@ -106,7 +108,7 @@ See [Rulebook Semantics](#rulebook-semantics) for the interpretation of these op
 
 Optional fluent methods:
 
-### `.Named`
+### `.Named(string)`
 Gives a name to the rule.
 ### `.At(int)` / `.OrderBefore(rule)` / `.OrderAfter(rule)`
 Controls [the order of the rule in the rulebook.](#rule-ordering)
@@ -118,23 +120,35 @@ Gives a `Func` defining when this rule is active.
 All rule definitions must end with defining the body of the rule, which uses one of these fluent methods:
 
 ### `.Do(body)`
-This rule runs the body, then continues to the next rule in the rulebook. Body take the same args as the rulebook, but not return anything.
+This rule runs the body, then continues to the next rule in the rulebook. Body should take the same args as the rulebook, but not return anything.
+
 ### `.Instead(body)`
 This rule runs the body, then exits the rulebook. Body should be a lambda with the same signature as the rulebook.
+
 ### `.Return(value)`
-This rule exits the rulebook with agiven value. For `FuncBook<>` only.
+This rule exits the rulebook with a given value. For `FuncBook<>` only.
+
 ### `.Stop()`
 This rule exits the rulebook. For `ActionBook<>` only.
+
 ### `.WithBody(body)`
-This rule runs the body, and either continues to the next rule, or exits the rulebook. Returns an `IRuleResult` described in [Rulebook Semantics](#rulebook-semantics).
+This rule runs the body that either continues to the next rule, or exits the rulebook. Body should returns a `IRuleResult` described in [Rulebook Semantics](#rulebook-semantics).
+
 ### `.Wrap(body)`
- See [wrap rules](#wrap-rules)
+See [wrap rules](#wrap-rules)
+
 ### `.WithWrapBody(body)`
 As [wrap rules](#wrap-rules), but like `WithBody`, uses `IRuleResult` for the return value.
+
 ### `.AbideBy(rulebook)`
-Creates a rule that invokes another rulebook, then stopping or returning if that rulebook did so. See [rulebook rules](#rulebook-rules)
+Creates a rule that invokes another rulebook, then stopping or returning if that rulebook did so. See [rulebook rules](#rulebook-rules).
+
+`rulebook` must have the same type signature as the parent rulebook. To abide by a rulebook with a non-matching signature, make a normal rule that called `rulebook.Evaluate` from it's body.
+
 ### `.Follow(rulebook)`
-Creates a rule that invokes another rulebook, ignoring any result of the rulebook (bar throwing an Exception). See [rulebook rules](#rulebook-rules)
+Creates a rule that invokes another rulebook, ignoring any result of the rulebook (bar throwing an Exception). See [rulebook rules](#rulebook-rules).
+
+`rulebook` must have the same type signature as the parent rulebook. To abide by a rulebook with a non-matching signature, make a normal rule that called `rulebook.Invoke` from it's body.
 
 ## Defining rules from an object
 
@@ -161,13 +175,13 @@ To evaluate a rule:
 
 First, then rule `Condition` is checked, if present. If it returns false, the rule is skipped.
 
-Then, the rule body is called, which returns an `IRuleResult` value. This is an enum that operate much like C#'s `Nullable<>` type. It can have values `Continue`/`Stop`/`Return(value)`/`Async`.
+Then, the rule body is called, which returns an `IRuleResult` value. This is an enum that functions a bit like C#'s `Nullable<>` type. It can have values `Continue`/`Stop`/`Return(value)`/`Async`.
 * If the returned result is `Continue`, then the rulebook moves on to the next rule.
 * If the returned result is `Stop` or `Return` then the rulebook stops evaluation, skipping all later rules. `Stop` is used for `ActionBook` and `Return` for `FuncBook`.
 * If the returned result is `Async`, then the actual result is awaited on synchronously or asynchronous.
 
 
-The `Invoke` method works identical to `Evaluate`, then tries to interpret the `IRuleResult`. For `FuncBook<>`s that finish with a `Return(value)` result, they will throw an exception.
+The `Invoke` method works identical to `Evaluate`, then tries to interpret the `IRuleResult`. For `FuncBook<>`s that finish all their rules without finding a `Return(value)` result, `Invoke` will throw an exception.
 
 
 ## Special Rules
@@ -180,7 +194,7 @@ Wrap rules work a bit like [ASP .NET Core Middleware](https://learn.microsoft.co
 additional argument, called the *continuation*. This is a method to call when continuing the process the rule book.
 
 This allows you complete control over further processing of the rulebook, including:
-* Putting code before/after other rules, `including try/catch` or `try/finally`
+* Putting code before/after other rules, including `try/catch` or `try/finally`
 * Changing the arguments the rest of the rules will recieve
 * Changing the return value after the rest of the rules have run.
 * Skipping the rest of the rules entirely, by not calling the continuation.
@@ -225,4 +239,4 @@ If still tied, insertion order is preserved.
 
 Rulebooks have built in support for Tasks. Rule can be declared async by simply having their body return `Task<>` or `Task`. And rulebooks can be invoked asynchronously with `InvokeAsync`.
 
-Async and sync rules can be freely mixed in one rulebook. Async rules will automatically block if called in a synchronous way.
+Async and sync rules can be freely mixed in one rulebook. Async rules will automatically block if called from a synchronous method.
