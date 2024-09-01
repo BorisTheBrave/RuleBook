@@ -61,6 +61,8 @@ def transform_n(src, dst, n):
 
 
 if __name__ == '__main__':
+    if not os.path.exists("RuleBook/Gen"):
+        os.makedirs("RuleBook/Gen")
     transform_action('RuleBook/FuncRule.1.cs', f'RuleBook/Gen/ActionRule.1.cs')
     transform_action('RuleBook/FuncBook.1.cs', f'RuleBook/Gen/ActionBook.1.cs')
     for n in range(0, 8+1):
