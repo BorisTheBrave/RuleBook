@@ -1,4 +1,4 @@
-﻿namespace RuleBook
+﻿namespace BorisTheBrave.RuleBook
 {
     /// <summary>
     /// Represents a single rule that can be inserted into a FuncBook.

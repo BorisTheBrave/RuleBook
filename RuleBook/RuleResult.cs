@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RuleBook
+namespace BorisTheBrave.RuleBook
 {
     /// <summary>
     /// Represents the results of evaluating a single rule in the rulebook.

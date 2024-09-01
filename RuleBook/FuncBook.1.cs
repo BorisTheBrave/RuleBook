@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace RuleBook
+namespace BorisTheBrave.RuleBook
 {
     /// <summary>
     /// A collection of rules, that collectively define a callable function with signature Func<TArg1, TRet>

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RuleBook.Test.Examples
+namespace BorisTheBrave.RuleBook.Test.Examples
 {
     internal class EatFood
     {

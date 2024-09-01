@@ -1,7 +1,4 @@
-using NUnit.Framework;
-using RuleBook;
-
-namespace RuleBook.Test
+namespace BorisTheBrave.RuleBook.Test
 {
     [TestFixture]
     public class FuncBookTests
