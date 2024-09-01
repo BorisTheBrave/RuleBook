@@ -1,6 +1,6 @@
 # RuleBook
 
-A C# library for modular functions, and actions, heavily inspired by [Inform 7](https://ganelson.github.io/inform-website/)'s [Rulebooks](https://ganelson.github.io/inform-website/book/WI_19_1.html).
+A C# library for modular functions and actions, heavily inspired by [Inform 7](https://ganelson.github.io/inform-website/)'s [Rulebooks](https://ganelson.github.io/inform-website/book/WI_19_1.html).
 
 **What are rulebooks?**
 
