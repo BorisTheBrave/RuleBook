@@ -1,7 +1,11 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace BorisTheBrave.RuleBook
 {
@@ -37,7 +41,11 @@ namespace BorisTheBrave.RuleBook
             /// If the condition return false, the rule is skipped.
             /// Sets <see cref="FuncRule{TArg1, TRet}.Condition"/>.
             /// </summary>
+#if CSHARP6
             public RuleBuilder When(Func<TArg1, bool> condition, [CallerArgumentExpression(nameof(condition))] string conditionText = null)
+#else
+            public RuleBuilder When(Func<TArg1, bool> condition, string conditionText = null)
+#endif
             {
                 this.condition = condition;
                 this.conditionText = conditionText;
