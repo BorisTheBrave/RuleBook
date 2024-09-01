@@ -63,12 +63,12 @@ And we can later start modifying those rules themselves as rulebooks, if we want
 
 ```csharp
 // Ignore the Poisoned rule when the player is immune.
-EatFood["Poisoned"].Rulebook.AddRule().When(t => Player.HasPoisonImmunity).Stop();
+EatFood["Poisoned"].RuleBook.AddRule().When(t => Player.HasPoisonImmunity).Stop();
 ```
 
 This let's you organize your code in a very modular way.
 
-You can find more examples in the [Examples](BorisTheBrave.RuleBook.Test/Examples) folder.
+You can find more examples in the [Examples](../BorisTheBrave.RuleBook.Test/Examples) folder.
 
 # Usage
 
@@ -217,11 +217,11 @@ FormatRule.AddRule().At(-2).When(o => o == player).Return("you")
 
 A rule can itself contain a sub rulebook of rules to execute. Nesting rule books like this gives a lot tighter control over the ordering of rules.
 
-If you have a simple rule, and read from `rule.Rulebook`, the library will automatically promote original rule to contain a sub rulebook, where the sub rulebook contains a single
+If you have a simple rule, and read from `rule.RuleBook`, the library will automatically promote original rule to contain a sub rulebook, where the sub rulebook contains a single
 rule with the body of the original rule. This allows you to take an rule, and add special cases to it.
 
 ```csharp
-myRule.Rulebook.AddRule().When(...).Instead(...);
+myRule.RuleBook.AddRule().When(...).Instead(...);
 ```
 
 

@@ -108,7 +108,7 @@ namespace BorisTheBrave.RuleBook.Test
         {
             var book = new FuncBook<int, int>();
             var a = book.AddRule().Return(1);
-            a.Rulebook.AddRule().When(x => x % 2 == 0).Return(3);
+            a.RuleBook.AddRule().When(x => x % 2 == 0).Return(3);
 
             Assert.That(book.Invoke(0), Is.EqualTo(3));
             Assert.That(book.Invoke(1), Is.EqualTo(1));

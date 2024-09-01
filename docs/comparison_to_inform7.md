@@ -2,6 +2,16 @@
 
 Inform 7's rulebook system was the main inspiration for this library. Unfortunately it's not always been possible to have the same tight integration that Inform 7 offers. Here I discuss features and their equivalents.
 
+## Changing the behaviour of rules
+
+Rulebook and rules are mutable objects, so you can remove rules from a rulebook, change the ordering, and so on straightforwardly.
+
+Whereas Inform 7 has special commands `does nothing` and `substitutes for` for overriding existing rules, in this library you are encouraged to promote a rule to a rulebook rule, then add an additional rule overriding it.
+
+```csharp
+myrule.Rulebook.AddRule().At(-100).Stop();
+```
+
 ## Rulebook Basis
 
 The [basis](https://ganelson.github.io/inform-website/book/WI_19_9.html) of a rulebook is just the arguments. You can specify them in the type arguments of `FuncBook<>` and `ActionBook<>`

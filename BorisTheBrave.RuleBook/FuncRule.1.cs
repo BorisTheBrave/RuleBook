@@ -117,7 +117,7 @@
         /// 
         /// You can use this to override the behaviour of any specific rule in a rulebook.
         /// </summary>
-        public FuncBook<TArg1, TRet> Rulebook
+        public FuncBook<TArg1, TRet> RuleBook
         {
             get
             {

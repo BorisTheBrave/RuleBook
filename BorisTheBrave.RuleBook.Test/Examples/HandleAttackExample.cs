@@ -50,7 +50,7 @@ namespace BorisTheBrave.RuleBook.Test.Examples
 
             // Except pistols, which do fixed damage
             // Note this uses "Instead" because it is overriding the initial damage rule.
-            handleAttack["initial damage"].Rulebook.AddRule()
+            handleAttack["initial damage"].RuleBook.AddRule()
                 .Named("pistol initial damage")
                 .At(-10)
                 .When(x => x.Attacker.WeaponType == "pistol")
