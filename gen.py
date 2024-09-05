@@ -30,6 +30,8 @@ def transform_n(src, dst, n):
     results = []
     if "This file is generated" not in lines[0]:
         results.append(f"// This file is generated, please edit source in {src}\n")
+    if n == 0:
+        results.append("#define IS_ZERO\n")
     r = range(1, n+1)
     for line in lines:
         
@@ -37,10 +39,20 @@ def transform_n(src, dst, n):
             line = line.replace("TArg1 arg1, ", "")
             line = line.replace("TArg1, ", "")
             line = line.replace("arg1, ", "")
-        line = line.replace("TArg1 arg1", "!TARGS!")
+            line = line.replace("VArg1, ", "")
+        line = line.replace("VArg1 : TArg1", "!VARGS:TARGS!")
+        line = line.replace("TArg1 arg1", "!TARGS ARGS!")
+        line = line.replace("arg1 is VArg1 varg1", "!ARGSISVARGS!")
+        line = line.replace("varg1", "!VARGS!")
+        line = line.replace("(VArg1)arg1", "!CAST ARGS!")
         line = line.replace("TArg1", ", ".join([f"TArg{i}" for i in r]))
         line = line.replace("arg1", ", ".join([f"arg{i}" for i in r]))
-        line = line.replace("!TARGS!", ", ".join([f"TArg{i} arg{i}" for i in r]))
+        line = line.replace("VArg1", ", ".join([f"VArg{i}" for i in r]))
+        line = line.replace("!TARGS ARGS!", ", ".join([f"TArg{i} arg{i}" for i in r]))
+        line = line.replace("!VARGS:TARGS!", " where ".join([f"VArg{i} : TArg{i}" for i in r]))
+        line = line.replace("!ARGSISVARGS!", " && ".join([f"arg{i} is VArg{i} varg{i}" for i in r]))
+        line = line.replace("!VARGS!", ", ".join([f"varg{i}" for i in r]))
+        line = line.replace("!CAST ARGS!", ", ".join([f"(VArg{i})arg{i}" for i in r]))
         if n == 0:
             line = line.replace("ActionBook<>", "ActionBook")
             line = line.replace("ActionBook{}", "ActionBook")

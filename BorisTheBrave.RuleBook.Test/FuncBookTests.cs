@@ -210,5 +210,18 @@ namespace BorisTheBrave.RuleBook.Test
             Assert.That(book1.Evaluate(0), Is.EqualTo(RuleResult.Continue));
             Assert.That(book2.Evaluate(0), Is.EqualTo(RuleResult.Return(0)));
         }
+
+        [Test]
+        public void OfType()
+        {
+            var book = new FuncBook<object, string>();
+            FuncRule<object, string> rule1 = book.AddRule().OfType<int>().Instead(x => (x + 1).ToString());
+            FuncRule<object, string> rule2 = book.AddRule().OfType<string>().Instead(x => x.Substring(0, 2));
+            FuncRule<object, string> rule3 = book.AddRule().Return("Unknown type");
+
+            Assert.That(book.Invoke(1), Is.EqualTo("2"));
+            Assert.That(book.Invoke("foo"), Is.EqualTo("fo"));
+            Assert.That(book.Invoke(1.23), Is.EqualTo("Unknown type"));
+        }
     }
 }

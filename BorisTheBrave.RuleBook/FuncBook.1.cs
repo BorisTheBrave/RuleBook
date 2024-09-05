@@ -14,28 +14,23 @@ namespace BorisTheBrave.RuleBook
     /// </summary>
     public class FuncBook<TArg1, TRet>
     {
-        /// <summary>
-        /// A typesafe class for building a FuncRule<TArg1, TRet>
-        /// </summary>
-        public class RuleBuilder
+        // Uses the Curiously Recurring Template Pattern, TSelf will be a derived class of the builder.
+        public class SimpleRuleBuilder<TSelf, TBuiltRule> where TSelf : SimpleRuleBuilder<TSelf, TBuiltRule>
         {
-            private FuncBook<TArg1, TRet> parent;
+            protected Func<FuncRule<TArg1, TRet>, TBuiltRule> finish;
 
-            private string name;
-            private float order;
-            private FuncRule<TArg1, TRet> orderBefore;
-            private FuncRule<TArg1, TRet> orderAfter;
-            private Func<TArg1, bool> condition;
-            private string conditionText;
+
+            private protected string name;
+            private protected float order;
+            private protected Func<TArg1, bool> condition;
+            private protected string conditionText;
             private Func<TArg1, IRuleResult> body;
-            private Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody;
-            private FuncBook<TArg1, TRet>? bookBody;
-            private bool bookBodyFollow = false;
 
-            internal RuleBuilder(FuncBook<TArg1, TRet> parent)
+            public SimpleRuleBuilder(Func<FuncRule<TArg1, TRet>, TBuiltRule> finish)
             {
-                this.parent = parent;
+                this.finish = finish;
             }
+
 
             /// <summary>
             /// If the condition return false, the rule is skipped.
@@ -44,32 +39,193 @@ namespace BorisTheBrave.RuleBook
 #if CSHARP6
             public RuleBuilder When(Func<TArg1, bool> condition, [CallerArgumentExpression(nameof(condition))] string conditionText = null)
 #else
-            public RuleBuilder When(Func<TArg1, bool> condition, string conditionText = null)
+            public TSelf When(Func<TArg1, bool> condition, string conditionText = null)
 #endif
             {
-                this.condition = condition;
-                this.conditionText = conditionText;
-                return this;
+                if (condition == null)
+                {
+                    this.condition = condition;
+                    this.conditionText = conditionText;
+                }
+                else
+                {
+                    var c = this.condition;
+                    this.condition = (arg1) => c(arg1) && condition(arg1);
+                }
+                if (this.conditionText == null)
+                {
+                    this.conditionText = conditionText;
+                }
+                else if (conditionText != null)
+                {
+                    this.conditionText = $"{this.conditionText} && {conditionText}";
+                }
+                return (TSelf)this;
             }
 
             /// <summary>
             /// Name is used for looking up rules in a rulebook.
             /// Sets <see cref="FuncRule{TArg1, TRet}.Name"/>.
             /// </summary>
-            public RuleBuilder Named(string name)
+            public TSelf Named(string name)
             {
                 this.name = name;
-                return this;
+                return (TSelf)this;
             }
 
             /// <summary>
             /// The relative order of this rule, lower is earlier.
             /// Sets <see cref="FuncRule{TArg1, TRet}.Order"/>.
             /// </summary>
-            public RuleBuilder At(float order)
+            public TSelf At(float order)
             {
                 this.order = order;
-                return this;
+                return (TSelf)this;
+            }
+
+
+#if IS_ACTION
+            /// <summary>
+            /// Sets a body that stops the rulebook. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule Stop()
+            {
+                this.body = (arg1) => { return RuleResult.Stop; };
+                return Finish();
+            }
+
+            /// <summary>
+            /// Sets a body that runs some code then stops the rulebook. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule Instead(Action<TArg1> body)
+            {
+                this.body = (arg1) => { body(arg1); return RuleResult.Stop; };
+                return Finish();
+            }
+
+            /// <summary>
+            /// Sets a body that runs some async code then stops the rulebook. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule Instead(Func<TArg1, Task> body)
+            {
+                this.body = (arg1) => RuleResult.StopWhen(body(arg1));
+                return Finish();
+            }
+#else
+            /// <summary>
+            /// Sets a body that stops the rulebooks, returning value. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule Return(TRet value)
+            {
+                this.body = (arg1) => RuleResult.Return(value);
+                return Finish();
+            }
+
+            /// <summary>
+            /// Sets a body that runs some code, then stops the rulebook, returning a value. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule Instead(Func<TArg1, TRet> body)
+            {
+                this.body = (arg1) => RuleResult.Return(body(arg1));
+                return Finish();
+            }
+
+            /// <summary>
+            /// Sets a body that runs some async code, then stops the rulebook, returning a value. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule Instead(Func<TArg1, Task<TRet>> body)
+            {
+                this.body = (arg1) => RuleResult.ReturnWhen(body(arg1));
+                return Finish();
+            }
+#endif
+
+            /// <summary>
+            /// Sets a body that runs some code, then continues the rulebook. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule Do(Action<TArg1> body)
+            {
+                this.body = (arg1) => { body(arg1); return RuleResult.Continue; };
+                return Finish();
+            }
+
+            /// <summary>
+            /// Sets a body that runs some async code, then continues the rulebook. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule Do(Func<TArg1, Task> body)
+            {
+                this.body = (arg1) => RuleResult.StopWhen(body(arg1));
+                return Finish();
+            }
+
+            /// <summary>
+            /// Sets a body that runs some code that indicates what the rulebook should do next. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule WithBody(Func<TArg1, IRuleResult> body)
+            {
+                this.body = body;
+                return Finish();
+            }
+
+            /// <summary>
+            /// Sets a body that runs some async code that indicates what the rulebook should do next. Finishes building the rule.
+            /// </summary>
+            public TBuiltRule WithBody(Func<TArg1, Task<IRuleResult>> body)
+            {
+                this.body = (arg1) => RuleResult.WrapAsync(body(arg1));
+                return Finish();
+            }
+
+            protected virtual FuncRule<TArg1, TRet> Build()
+            {
+                return new FuncRule<TArg1, TRet>
+                {
+                    Name = name ?? conditionText,
+                    Order = order,
+                    Condition = condition,
+                    FuncBody = body,
+                };
+            }
+
+            protected TBuiltRule Finish()
+            {
+                return finish(Build());
+            }
+
+        }
+
+#if !IS_ZERO
+        // This is possibly the ugliest generic I've written in my career.
+        // FuncBook<VArg1, TRet>.OfTypeRuleBuilder<VArg1>
+        // is a builder that accepts lets you be a FuncRule<TTArg, TRet>
+        // but ultimately returns a FuncRule<TArg, TRet>.
+        public class OfTypeRuleBuilder<VArg1> : FuncBook<VArg1, TRet>.SimpleRuleBuilder<OfTypeRuleBuilder<VArg1>, FuncRule<TArg1, TRet>>
+        {
+            public OfTypeRuleBuilder(Func<FuncRule<VArg1, TRet>, FuncRule<TArg1, TRet>> finish) : base(finish)
+            {
+            }
+        }
+#endif
+
+
+        /// <summary>
+        /// A typesafe class for building a FuncRule<TArg1, TRet>
+        /// </summary>
+        public class RuleBuilder : SimpleRuleBuilder<RuleBuilder, FuncRule<TArg1, TRet>>
+        {
+            private FuncRule<TArg1, TRet> orderBefore;
+            private FuncRule<TArg1, TRet> orderAfter;
+            private Func<Func<TArg1, IRuleResult>, TArg1, IRuleResult> wrapBody;
+            private FuncBook<TArg1, TRet>? bookBody;
+            private bool bookBodyFollow = false;
+
+            internal RuleBuilder(FuncBook<TArg1, TRet> parent)
+                :base(r =>
+                {
+                    parent.AddRule(r);
+                    return r;
+                })
+            {
             }
 
             /// <summary>
@@ -92,97 +248,6 @@ namespace BorisTheBrave.RuleBook
                 return this;
             }
 
-#if IS_ACTION
-            /// <summary>
-            /// Sets a body that stops the rulebook. Finishes building the rule.
-            /// </summary>
-            public ActionRule<TArg1> Stop()
-            {
-                this.body = (arg1) => { return RuleResult.Stop; };
-                return Finish();
-            }
-
-            /// <summary>
-            /// Sets a body that runs some code then stops the rulebook. Finishes building the rule.
-            /// </summary>
-            public ActionRule<TArg1> Instead(Action<TArg1> body)
-            {
-                this.body = (arg1) => { body(arg1); return RuleResult.Stop; };
-                return Finish();
-            }
-
-            /// <summary>
-            /// Sets a body that runs some async code then stops the rulebook. Finishes building the rule.
-            /// </summary>
-            public ActionRule<TArg1> Instead(Func<TArg1, Task> body)
-            {
-                this.body = (arg1) => RuleResult.StopWhen(body(arg1));
-                return Finish();
-            }
-#else
-            /// <summary>
-            /// Sets a body that stops the rulebooks, returning value. Finishes building the rule.
-            /// </summary>
-            public FuncRule<TArg1, TRet> Return(TRet value)
-            {
-                this.body = (arg1) => RuleResult.Return(value);
-                return Finish();
-            }
-
-            /// <summary>
-            /// Sets a body that runs some code, then stops the rulebook, returning a value. Finishes building the rule.
-            /// </summary>
-            public FuncRule<TArg1, TRet> Instead(Func<TArg1, TRet> body)
-            {
-                this.body = (arg1) => RuleResult.Return(body(arg1));
-                return Finish();
-            }
-
-            /// <summary>
-            /// Sets a body that runs some async code, then stops the rulebook, returning a value. Finishes building the rule.
-            /// </summary>
-            public FuncRule<TArg1, TRet> Instead(Func<TArg1, Task<TRet>> body)
-            {
-                this.body = (arg1) => RuleResult.ReturnWhen(body(arg1));
-                return Finish();
-            }
-#endif
-
-            /// <summary>
-            /// Sets a body that runs some code, then continues the rulebook. Finishes building the rule.
-            /// </summary>
-            public FuncRule<TArg1, TRet> Do(Action<TArg1> body)
-            {
-                this.body = (arg1) => { body(arg1); return RuleResult.Continue; };
-                return Finish();
-            }
-
-            /// <summary>
-            /// Sets a body that runs some async code, then continues the rulebook. Finishes building the rule.
-            /// </summary>
-            public FuncRule<TArg1, TRet> Do(Func<TArg1, Task> body)
-            {
-                this.body = (arg1) => RuleResult.StopWhen(body(arg1));
-                return Finish();
-            }
-
-            /// <summary>
-            /// Sets a body that runs some code that indicates what the rulebook should do next. Finishes building the rule.
-            /// </summary>
-            public FuncRule<TArg1, TRet> WithBody(Func<TArg1, IRuleResult> body)
-            {
-                this.body = body;
-                return Finish();
-            }
-
-            /// <summary>
-            /// Sets a body that runs some async code that indicates what the rulebook should do next. Finishes building the rule.
-            /// </summary>
-            public FuncRule<TArg1, TRet> WithBody(Func<TArg1, Task<IRuleResult>> body)
-            {
-                this.body = (arg1) => RuleResult.WrapAsync(body(arg1));
-                return Finish();
-            }
 
 #if IS_ACTION
             /// <summary>
@@ -299,22 +364,52 @@ namespace BorisTheBrave.RuleBook
             // TODO: Should be able to follow/abide by an ActionBook from a FuncBook?
 
 
-            private FuncRule<TArg1, TRet> Finish()
+#if !IS_ZERO
+            public OfTypeRuleBuilder<VArg1> OfType<VArg1>() where VArg1 : TArg1
             {
-                var rule = new FuncRule<TArg1, TRet>
+                var thenFinish = this.finish;
+                return new OfTypeRuleBuilder<VArg1>(r =>
                 {
-                    Name = name ?? conditionText,
-                    Order = order,
-                    OrderBefore = orderBefore,
-                    OrderAfter = orderAfter,
-                    Condition = condition,
-                    FuncBody = body,
-                    WrapBody = wrapBody,
-                    BookBody = bookBody,
-                    BookBodyFollow = bookBodyFollow,
-                };
-                parent.AddRule(rule);
-                return rule;
+                    var r2 = new FuncRule<TArg1, TRet>
+                    {
+                        Name = r.Name,
+                        Order = r.Order,
+                        OrderAfter = orderAfter,
+                        OrderBefore = orderBefore,
+                    };
+                    // OfTypeRuleBuilder has fewer options, so we can safely assume certain
+                    // properties of r are null.
+                    if (r.Condition == null)
+                    {
+                        r2.Condition = (arg1) => arg1 is VArg1 varg1;
+                    }
+                    else
+                    {
+                        r2.Condition = (arg1) => arg1 is VArg1 varg1 && r.Condition(varg1);
+                    }
+                    if(condition != null)
+                    {
+                        var prevCondition = r2.Condition;
+                        r2.Condition = (arg1) => condition(arg1) && prevCondition(arg1);
+                    }
+                    if (r.FuncBody != null)
+                        r2.FuncBody = (arg1) => r.FuncBody((VArg1)arg1);
+                    return thenFinish(r2);
+                })
+                    .Named(name)
+                    .At(order);
+            }
+#endif
+
+            protected override FuncRule<TArg1, TRet> Build()
+            {
+                var r = base.Build();
+                r.OrderBefore = orderBefore;
+                r.OrderAfter = orderAfter;
+                r.WrapBody = wrapBody;
+                r.BookBody = bookBody;
+                r.BookBodyFollow = bookBodyFollow;
+                return r;
             }
         }
 

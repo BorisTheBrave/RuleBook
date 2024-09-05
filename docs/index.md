@@ -114,6 +114,10 @@ Gives a name to the rule.
 Controls [the order of the rule in the rulebook.](#rule-ordering)
 ### `.When(condition)`
 Gives a `Func` defining when this rule is active.
+### `.OfType<Type1, Type2>()`
+This rule only matches arguments of types `Type1`,`Type2`, which must be subtypes of the original types for the rule.
+The builder will enforce type safety.
+
 
 ---
 
