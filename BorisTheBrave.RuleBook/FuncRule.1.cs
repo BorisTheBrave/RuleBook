@@ -46,7 +46,7 @@ namespace BorisTheBrave.RuleBook
         public float Order { get { return order; } set { order = value; Reorder(); } }
         internal int InsertionOrder { get { return insertionOrder; } set { insertionOrder = value; } }
         /// <summary>
-        /// Sorts this rule immediately after the other rule.
+        /// Sorts this rule immediately before the other rule.
         /// Sets <see cref="FuncRule{TArg1, TRet}.OrderBefore"/>.
         /// Updating this will change the position in the rulebook.
         /// </summary>

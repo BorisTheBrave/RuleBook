@@ -20,7 +20,7 @@ Inform 7 supports only a single argument - this library supports up to 8. Howeve
 
 ## Rulebook Variables
 
-There's no easy equivalent of [rulebook variables](https://ganelson.github.io/inform-website/book/WI_19_10.html). If you need something like this, consider adding an extra argument, which is some sort of mutable object you can fit ths data in.
+There's no easy equivalent of [rulebook variables](https://ganelson.github.io/inform-website/book/WI_19_10.html). If you need something like this, consider adding an extra argument, which is some sort of mutable object you can fit the data in.
 
 The HandleAttack example demos something like this.
 

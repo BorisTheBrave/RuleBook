@@ -504,7 +504,6 @@ namespace BorisTheBrave.RuleBook
 
         private static IRuleResult Evaluate(TArg1 arg1, List<FuncRule<TArg1, TRet>> rules, int startingAt)
         {
-            // TODO: Protect against mutation while this is running?
             for (var i = startingAt; i < rules.Count; i++)
             {
                 var rule = rules[i];
@@ -578,7 +577,7 @@ namespace BorisTheBrave.RuleBook
 #else
         public async Task<TRet> InvokeAsync(TArg1 arg1)
         {
-            // This will be caught later, but it's a common error case, so let's make it obvious.
+            // This would be detected later, but it's a common error case, so let's make it obvious.
             if(rules.Count == 0)
             {
                 throw new Exception("No rules in rulebook, it cannot produce a result.");
