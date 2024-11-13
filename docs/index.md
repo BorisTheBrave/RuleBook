@@ -59,7 +59,7 @@ But there are advantages to this approach. We've registered 3 separate rules for
 
 That let's us organize the code better. You can place code for handling eating a magic cake with all the other code for magic cakes, you don't have to put every special case inside the EatFood method.
 
-And we can later start modifying those rules themselves as rulebooks, if we want to override reglar behaviour.
+And we can later start modifying those rules themselves as rulebooks, if we want to override regular behaviour.
 
 ```csharp
 // Ignore the Poisoned rule when the player is immune.
@@ -147,12 +147,12 @@ As [wrap rules](#wrap-rules), but like `WithBody`, uses `IRuleResult` for the re
 ### `.AbideBy(rulebook)`
 Creates a rule that invokes another rulebook, then stopping or returning if that rulebook did so. See [rulebook rules](#rulebook-rules).
 
-`rulebook` must have the same type signature as the parent rulebook. To abide by a rulebook with a non-matching signature, make a normal rule that called `rulebook.Evaluate` from it's body.
+`rulebook` must have the same type signature as the parent rulebook. To abide by a rulebook with a non-matching signature, make a normal rule that called `rulebook.Evaluate` from its body.
 
 ### `.Follow(rulebook)`
 Creates a rule that invokes another rulebook, ignoring any result of the rulebook (bar throwing an Exception). See [rulebook rules](#rulebook-rules).
 
-`rulebook` must have the same type signature as the parent rulebook. To abide by a rulebook with a non-matching signature, make a normal rule that called `rulebook.Invoke` from it's body.
+`rulebook` must have the same type signature as the parent rulebook. To abide by a rulebook with a non-matching signature, make a normal rule that called `rulebook.Invoke` from its body.
 
 ## Defining rules from an object
 

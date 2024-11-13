@@ -2,6 +2,8 @@
 
 A C# library for modular functions and actions, heavily inspired by [Inform 7](https://ganelson.github.io/inform-website/)'s [Rulebooks](https://ganelson.github.io/inform-website/book/WI_19_1.html).
 
+<img src="logo/rulebook_logo.png" width="300">
+
 **What are rulebooks?**
 
 Rulebooks are essentially a fancy form of C#'s `Func<>` and `Action<>` generics.
@@ -59,7 +61,7 @@ But there are advantages to this approach. We've registered 3 separate rules for
 
 That let's us organize the code better. You can place code for handling eating a magic cake with all the other code for magic cakes, you don't have to put every special case inside the EatFood method.
 
-And we can later start modifying those rules themselves as rulebooks, if we want to override reglar behaviour.
+And we can later start modifying those rules themselves as rulebooks, if we want to override regular behaviour.
 
 ```csharp
 // Ignore the Poisoned rule when the player is immune.
@@ -74,6 +76,6 @@ You can find more examples in the [Examples folder](BorisTheBrave.RuleBook.Test/
 
 No NuGet package for now, let me know if that is desirable.
 
-It's easiset to use a prebuilt .dll or a .zip containing the sources. Either can be found in GitHub releases.
+It's easiest to use a prebuilt .dll or a .zip containing the sources. Either can be found in GitHub releases.
 
 If you want to build from source, you will need to run `gen.py` to generate all the variant classes.
